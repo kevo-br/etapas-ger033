@@ -240,21 +240,21 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     var pct = total ? Math.round(feitos * 100 / total) : 0;
     var travar = salvando > 0;
 
-    var h = topo() +
-      '<section class="resumo" aria-label="Progresso">' +
+    // A casca (título, resumo, filtros) é montada uma vez só; depois só o
+    // resumo e a lista são redesenhados. Assim um clique num filtro nunca se
+    // perde por causa de uma atualização que chegou do banco no meio dele.
+    if (!document.getElementById('lista')) montarCasca();
+
+    document.getElementById('resumo').innerHTML =
       '<div class="placar"><span class="num">' + feitos + '<span class="de">/' + total + '</span></span><span class="rot">itens concluídos · ' + pct + '%</span></div>' +
       '<div class="barra" role="progressbar" aria-label="Itens concluídos" aria-valuemin="0" aria-valuemax="' + total + '" aria-valuenow="' + feitos + '"><span style="width:' + pct + '%"></span></div>' +
       '<div class="meta"><span id="chip" class="chip ' + chip[0] + '" role="status">' + esc(chip[1]) + '</span>' +
-      (ultima ? '<span>Última alteração: ' + esc(fmt(ultima)) + '</span>' : '') + '</div>' +
-      '</section>' +
-      '<div class="ferr">' +
-      '<div class="filtros" role="group" aria-label="Mostrar">' +
-      ['todos', 'pendentes', 'feitos'].map(function (f) {
-        return '<button type="button" data-filtro="' + f + '" data-foco="f-' + f + '" aria-pressed="' + (ui.filtro === f) + '">' + NOMES_FILTRO[f] + '</button>';
-      }).join('') + '</div>' +
-      '<div class="acoes"><button type="button" data-acao="abrir" data-foco="a-abrir">Expandir tudo</button><button type="button" data-acao="fechar" data-foco="a-fechar">Recolher tudo</button></div>' +
-      '</div>';
+      (ultima ? '<span>Última alteração: ' + esc(fmt(ultima)) + '</span>' : '') + '</div>';
+    Array.prototype.forEach.call(root.querySelectorAll('[data-filtro]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-filtro') === ui.filtro));
+    });
 
+    var h = '';
     var linhas = '';
     grupos.forEach(function (g) {
       var s = situacao(g);
@@ -283,15 +283,46 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         '</div></li>';
     });
     h += linhas ? '<ul class="arvore">' + linhas + '</ul>' : '<p class="vazio">Nenhuma etapa com esse filtro.</p>';
-    h += '<p class="rodape">As marcações ficam salvas para todos e aparecem sozinhas para quem estiver com a página aberta.</p>';
 
-    root.innerHTML = h;
-    Array.prototype.forEach.call(root.querySelectorAll('input[data-meio]'), function (i) { i.indeterminate = true; });
-    if (foco) {
+    var lista = document.getElementById('lista');
+    lista.innerHTML = h;
+    Array.prototype.forEach.call(lista.querySelectorAll('input[data-meio]'), function (i) { i.indeterminate = true; });
+    if (foco && !root.querySelector('[data-foco="' + foco + '"]:focus')) {
       var alvo = root.querySelector('[data-foco="' + foco + '"]');
       if (alvo && !alvo.disabled) alvo.focus();
     }
   }
+
+  function montarCasca() {
+    root.innerHTML = topo() +
+      '<section class="resumo" id="resumo" aria-label="Progresso"></section>' +
+      '<div class="ferr">' +
+      '<div class="filtros" role="group" aria-label="Mostrar">' +
+      ['todos', 'pendentes', 'feitos'].map(function (f) {
+        return '<button type="button" data-filtro="' + f + '" data-foco="f-' + f + '" aria-pressed="' + (ui.filtro === f) + '">' + NOMES_FILTRO[f] + '</button>';
+      }).join('') + '</div>' +
+      '<div class="acoes"><button type="button" data-acao="abrir" data-foco="a-abrir">Expandir tudo</button><button type="button" data-acao="fechar" data-foco="a-fechar">Recolher tudo</button></div>' +
+      '</div>' +
+      '<div id="lista"></div>' +
+      '<p class="rodape">As marcações ficam salvas para todos e aparecem sozinhas para quem estiver com a página aberta.</p>';
+  }
+
+  // Atualizações que chegam do banco esperam o dedo/mouse soltar,
+  // para não trocar a lista embaixo de um clique em andamento.
+  var ponteiroAbaixo = false, renderPendente = false;
+  function pedirRender() {
+    if (ponteiroAbaixo) { renderPendente = true; return; }
+    render();
+  }
+  document.addEventListener('pointerdown', function () { ponteiroAbaixo = true; }, true);
+  function soltou() {
+    setTimeout(function () {
+      ponteiroAbaixo = false;
+      if (renderPendente) { renderPendente = false; render(); }
+    }, 0);
+  }
+  document.addEventListener('pointerup', soltou, true);
+  document.addEventListener('pointercancel', soltou, true);
 
   function carregar() {
     return Promise.all([
@@ -305,7 +336,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       r[1].data.forEach(function (i) { if (mapa[i.grupo_id]) mapa[i.grupo_id].itens.push(i); });
       fase = 'pronto';
       if (chip[1] === 'Conectando…') definirChip('ok', 'Tudo salvo');
-      render();
+      pedirRender();
     }).catch(function (e) {
       if (fase === 'pronto') {
         definirChip('erro', 'Sem conexão com o banco. As marcações podem estar desatualizadas.');
@@ -349,7 +380,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
           it.feito = p.new.feito;
           it.atualizado_em = p.new.atualizado_em;
           it.texto = p.new.texto;
-          render();
+          pedirRender();
         } else if (!it) {
           carregar();
         }
