@@ -28,7 +28,7 @@ Site com a árvore de etapas do projeto GER033 (Analista Virtual do Mapa Diário
 
 Nunca coloque no site a chave **secret** (ou **service_role**): ela ignora as regras de acesso.
 
-## 3. Publicar no GitHub Pages
+## 3. Publicar no GitHub Pages 
 
 1. No GitHub, crie um repositório novo e **público**, por exemplo `etapas-ger033`, sem README.
 2. Na pasta `site-etapas`, envie os arquivos:
