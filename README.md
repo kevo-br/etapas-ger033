@@ -11,6 +11,16 @@ Site com a árvore de etapas do projeto GER033 (Analista Virtual do Mapa Diário
 2. No menu lateral, abra **SQL Editor**, clique em **New query**, cole todo o conteúdo de `supabase.sql` e clique em **Run**. Deve aparecer "Success. No rows returned".
 3. Confira em **Table Editor**: as tabelas `etapas_grupos` (11 linhas) e `etapas_itens` (25 linhas) devem estar lá.
 
+### Cronograma (fases)
+
+Depois do `supabase.sql`, rode também o `supabase_cronograma.sql` (mesmo caminho: SQL Editor > New query > Run). Ele cria:
+
+- `etapas_fases`: as 4 fases do cronograma, com início e fim;
+- `cronograma_tarefas`: as tarefas de cada fase, com datas, duração, responsável e `feito`;
+- a coluna `fase_id` em `etapas_grupos`, que diz em qual fase cada frente aparece.
+
+Com isso o site ganha a aba **Cronograma** e o filtro por fase, que vale nas duas abas. Sem esse script, o site continua mostrando só as frentes.
+
 ## 2. Ligar o site ao banco
 
 1. Em **Project Settings > Data API**, copie a **Project URL** (algo como `https://abcdefgh.supabase.co`).
