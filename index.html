@@ -119,6 +119,11 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .itens li input { margin-top: 2px; }
 .itens label { cursor: pointer; min-width: 0; }
 .itens li.feito label { color: var(--muted); }
+.itens li.pai { display: block; }
+.pai > .lin { display: flex; align-items: flex-start; gap: 10px; }
+.pai > .lin input { margin-top: 2px; }
+.pai > .lin label { font-weight: 600; }
+.pai > .itens { margin: 6px 0 4px 8px; }
 .tarefa { display: grid; gap: 1px; }
 .tmeta { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12.5px; color: var(--muted); }
 .tmeta .tatraso { color: var(--bad); font-weight: 600; }
@@ -169,11 +174,19 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 
   var root = document.getElementById('root');
   var cfg = window.ETAPAS_CONFIG || {};
-  var grupos = [];       // frentes: [{id, ordem, titulo, descricao, nota, fase_id, itens: [...]}]
-  var fases = [];        // fases do cronograma: [{id, ordem, titulo, titulo_curto, inicio, fim, tarefas: [...]}]
+
+  // Modelo:
+  //  grupos   = frentes de trabalho
+  //  fases    = fases do cronograma, cada uma com suas tarefas
+  //  itens    = itens das frentes; cada um pendurado numa tarefa (tarefa_id)
+  //  tarefas  = tarefas do cronograma; cada uma numa frente (grupo_id)
+  //  folhas   = o que se marca: todos os itens + as tarefas sem itens.
+  //             Uma tarefa com itens se conclui quando todos estão marcados.
+  var grupos = [], fases = [], itens = [], tarefas = [], folhas = [];
   var temCronograma = false;
+  var unificado = false;    // false enquanto o supabase_unificar.sql não foi rodado
   var assinaturaCasca = '';
-  var carga = 'carregando';   // carregando | pronto | config | erro
+  var carga = 'carregando'; // carregando | pronto | config | erro
   var erroCarga = '';
   var chip = ['neutro', 'Conectando…'];
   var salvando = 0;
@@ -192,7 +205,6 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 
   // ---------- utilidades ----------
   function carregarUi() {
-    var padrao = { abertos: {}, filtro: 'todos', aba: 'frentes', fase: 'todas' };
     try {
       var s = localStorage.getItem('ger033-etapas-ui-v2');
       if (s) {
@@ -200,7 +212,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         return { abertos: o.abertos || {}, filtro: o.filtro || 'todos', aba: o.aba || 'frentes', fase: o.fase || 'todas' };
       }
     } catch (e) {}
-    return padrao;
+    return { abertos: {}, filtro: 'todos', aba: 'frentes', fase: 'todas' };
   }
   function salvarUi() {
     try { localStorage.setItem('ger033-etapas-ui-v2', JSON.stringify(ui)); } catch (e) {}
@@ -227,9 +239,9 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     if (f === 0) return { n: n, f: f, cls: 'pend', txt: 'Pendente' };
     return { n: n, f: f, cls: 'and', txt: 'Em andamento' };
   }
-  function passaFiltro(i) {
-    if (ui.filtro === 'pendentes') return !i.feito;
-    if (ui.filtro === 'feitos') return i.feito;
+  function passaFiltro(x) {
+    if (ui.filtro === 'pendentes') return !x.feito;
+    if (ui.filtro === 'feitos') return x.feito;
     return true;
   }
   function grupoPassa(s) {
@@ -242,30 +254,54 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     var s = situacao(lista);
     return s.f < s.n;
   }
-  function acharGrupo(id) { return grupos.filter(function (g) { return g.id === id; })[0]; }
-  function acharFase(id) { return fases.filter(function (f) { return f.id === id; })[0]; }
-  function acharItem(id) {
-    for (var k = 0; k < grupos.length; k++) {
-      var it = grupos[k].itens.filter(function (i) { return i.id === id; })[0];
-      if (it) return it;
-    }
-    return null;
-  }
-  function acharTarefa(id) {
-    for (var k = 0; k < fases.length; k++) {
-      var t = fases[k].tarefas.filter(function (i) { return i.id === id; })[0];
-      if (t) return t;
-    }
-    return null;
-  }
-  function fasesVisiveis() {
-    if (ui.fase === 'todas') return fases;
-    return fases.filter(function (f) { return f.id === ui.fase; });
-  }
+  function porId(lista, id) { return lista.filter(function (x) { return x.id === id; })[0]; }
+  function acharGrupo(id) { return porId(grupos, id); }
+  function acharFase(id) { return porId(fases, id); }
+  function acharItem(id) { return porId(itens, id); }
+  function acharTarefa(id) { return porId(tarefas, id); }
+  function tituloCurto(f) { return f ? (f.titulo_curto || f.titulo) : ''; }
+
+  // fase, datas e frente de uma folha (item ou tarefa sem itens)
+  function faseDe(x) { return x.tipo === 'tarefa' ? x.fase_id : (x.tarefa ? x.tarefa.fase_id : null); }
+  function inicioDe(x) { return x.tipo === 'tarefa' ? x.inicio : (x.tarefa ? x.tarefa.inicio : null); }
+  function fimDe(x) { return x.tipo === 'tarefa' ? x.fim : (x.tarefa ? x.tarefa.fim : null); }
+  function noEscopo(x) { return ui.fase === 'todas' || faseDe(x) === ui.fase; }
+  function folhasDaTarefa(t) { return t.filhos.length ? t.filhos : [t]; }
   function definirChip(cls, txt) {
     chip = [cls, txt];
     var el = document.getElementById('chip');
     if (el) { el.className = 'chip ' + cls; el.textContent = txt; }
+  }
+
+  // ---------- montagem dos dados ----------
+  function montar(rg, ri, rf, rt) {
+    grupos = rg; itens = ri; fases = rf; tarefas = rt;
+    var mg = {}, mf = {}, mt = {};
+    grupos.forEach(function (g) { mg[g.id] = g; g.folhas = []; });
+    fases.forEach(function (f) { mf[f.id] = f; f.tarefas = []; });
+    tarefas.forEach(function (t) { t.tipo = 'tarefa'; t.filhos = []; mt[t.id] = t; if (mf[t.fase_id]) mf[t.fase_id].tarefas.push(t); });
+    itens.forEach(function (i) {
+      i.tipo = 'item';
+      i.tarefa = (unificado && i.tarefa_id && mt[i.tarefa_id]) || null;
+      if (i.tarefa) i.tarefa.filhos.push(i);
+    });
+    function ordemGrupo(x) { var g = mg[x.grupo_id]; return g ? g.ordem : 999; }
+    tarefas.forEach(function (t) {
+      t.filhos.sort(function (a, b) { return (ordemGrupo(a) - ordemGrupo(b)) || (a.ordem - b.ordem); });
+    });
+
+    folhas = itens.slice();
+    if (unificado) tarefas.forEach(function (t) { if (!t.filhos.length) folhas.push(t); });
+
+    function ordemFase(x) { var f = mf[faseDe(x)]; return f ? f.ordem : 999; }
+    folhas.forEach(function (x) { if (mg[x.grupo_id]) mg[x.grupo_id].folhas.push(x); });
+    grupos.forEach(function (g) {
+      g.folhas.sort(function (a, b) {
+        var da = inicioDe(a) || '9999', db = inicioDe(b) || '9999';
+        if (da !== db) return da < db ? -1 : 1;
+        return (ordemFase(a) - ordemFase(b)) || ((a.tarefa ? a.tarefa.ordem : a.ordem) - (b.tarefa ? b.tarefa.ordem : b.ordem)) || (a.ordem - b.ordem);
+      });
+    });
   }
 
   // ---------- desenho ----------
@@ -291,7 +327,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         '<div class="fases" role="group" aria-label="Fase do cronograma"><span class="rotulo">Fase</span>' +
         '<button type="button" data-fase="todas" data-foco="p-todas">Todas</button>' +
         fases.map(function (f) {
-          return '<button type="button" data-fase="' + esc(f.id) + '" data-foco="p-' + esc(f.id) + '">' + esc(f.titulo_curto || f.titulo) + '</button>';
+          return '<button type="button" data-fase="' + esc(f.id) + '" data-foco="p-' + esc(f.id) + '">' + esc(tituloCurto(f)) + '</button>';
         }).join('') +
         '</div>';
     }
@@ -311,16 +347,38 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       '<p class="rodape">As marcações ficam salvas para todos e aparecem sozinhas para quem estiver com a página aberta.</p>';
   }
 
-  function cartaoFrente(g, travar) {
-    var s = situacao(g.itens);
+  function metaHtml(partes) {
+    partes = partes.filter(Boolean);
+    return partes.length ? '<span class="tmeta">' + partes.map(function (p) { return '<span>' + p + '</span>'; }).join('') + '</span>' : '';
+  }
+
+  // uma folha (item ou tarefa sem itens) com checkbox
+  function folhaHtml(x, meta, travar) {
+    var tipo = x.tipo === 'tarefa' ? 'tarefa' : 'item';
+    var pref = tipo === 'tarefa' ? 't-' : 'i-';
+    var mh = metaHtml(meta || []);
+    return '<li' + (x.feito ? ' class="feito"' : '') + '>' +
+      '<input type="checkbox" id="' + pref + esc(x.id) + '" data-' + tipo + '="' + esc(x.id) + '" data-foco="' + pref + esc(x.id) + '"' + (x.feito ? ' checked' : '') + (travar ? ' disabled' : '') + '>' +
+      '<label for="' + pref + esc(x.id) + '"' + (mh ? ' class="tarefa"' : '') + '><span>' + esc(x.texto) + '</span>' + mh + '</label></li>';
+  }
+
+  function atrasoHtml(fim, concluido, dia) {
+    return (!concluido && fim && fim < dia) ? '<span class="tatraso">Atrasada</span>' : '';
+  }
+
+  // ---- aba Frentes ----
+  function cartaoFrente(g, travar, dia) {
+    var lista = g.folhas.filter(noEscopo);
+    if (!lista.length) return '';
+    var s = situacao(lista);
     if (!grupoPassa(s)) return '';
     var chave = 'g:' + g.id;
-    var ab = aberto(chave, g.itens);
-    var itens = g.itens.filter(passaFiltro);
+    var ab = aberto(chave, lista);
+    var visiveis = lista.filter(passaFiltro);
     return '<li class="grupo ' + s.cls + (travar ? ' travado' : '') + '">' +
       '<div class="linha">' +
       '<button type="button" class="caret" data-abrir="' + esc(chave) + '" data-foco="c-' + esc(chave) + '" aria-expanded="' + ab + '" aria-controls="corpo-' + esc(chave) + '" aria-label="' + (ab ? 'Recolher ' : 'Expandir ') + esc(g.titulo) + '">' + CHEVRON + '</button>' +
-      '<input type="checkbox" id="g-' + esc(g.id) + '" data-grupo="' + esc(g.id) + '" data-foco="g-' + esc(g.id) + '"' + (s.n > 0 && s.f === s.n ? ' checked' : '') + (s.cls === 'and' ? ' data-meio="1"' : '') + (travar || !s.n ? ' disabled' : '') + '>' +
+      '<input type="checkbox" id="g-' + esc(g.id) + '" data-grupo="' + esc(g.id) + '" data-foco="g-' + esc(g.id) + '"' + (s.f === s.n ? ' checked' : '') + (s.cls === 'and' ? ' data-meio="1"' : '') + (travar ? ' disabled' : '') + '>' +
       '<label for="g-' + esc(g.id) + '" class="titulo">' + esc(g.titulo) + '</label>' +
       '<span class="conta">' + s.f + '/' + s.n + '</span>' +
       '<span class="pill ' + s.cls + '">' + s.txt + '</span>' +
@@ -328,19 +386,51 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       '<div class="corpo" id="corpo-' + esc(chave) + '"' + (ab ? '' : ' hidden') + '>' +
       (g.descricao ? '<p class="desc">' + esc(g.descricao) + '</p>' : '') +
       (g.nota && s.f < s.n ? '<p class="nota"><strong>Por que falta:</strong> ' + esc(g.nota) + '</p>' : '') +
-      '<ul class="itens">' + itens.map(function (i) {
-        return '<li' + (i.feito ? ' class="feito"' : '') + '><input type="checkbox" id="i-' + esc(i.id) + '" data-item="' + esc(i.id) + '" data-foco="i-' + esc(i.id) + '"' + (i.feito ? ' checked' : '') + (travar ? ' disabled' : '') + '><label for="i-' + esc(i.id) + '">' + esc(i.texto) + '</label></li>';
+      '<ul class="itens">' + visiveis.map(function (x) {
+        var meta = [];
+        if (unificado) {
+          meta.push(esc(tituloCurto(acharFase(faseDe(x)))));
+          meta.push(esc(periodo(inicioDe(x), fimDe(x))));
+          if (x.tipo === 'tarefa') meta.push(esc(x.responsavel || ''));
+          else if (x.tarefa) meta.push('em: ' + esc(x.tarefa.texto));
+          meta.push(atrasoHtml(fimDe(x), x.feito, dia));
+        }
+        return folhaHtml(x, meta, travar);
       }).join('') + '</ul>' +
       '</div></li>';
   }
 
+  // ---- aba Cronograma ----
+  function tarefaHtml(t, travar, dia) {
+    var metaT = [esc(periodo(t.inicio, t.fim)), esc(t.duracao || ''), esc(t.responsavel || '')];
+    if (!t.filhos.length) {
+      if (!passaFiltro(t)) return '';
+      metaT.push(atrasoHtml(t.fim, t.feito, dia));
+      return folhaHtml(t, metaT, travar);
+    }
+    var kids = t.filhos.filter(passaFiltro);
+    if (!kids.length) return '';
+    var s = situacao(t.filhos);
+    metaT.push(s.f + '/' + s.n);
+    metaT.push(atrasoHtml(t.fim, s.f === s.n, dia));
+    var frentesPorId = {};
+    grupos.forEach(function (g) { frentesPorId[g.id] = g.titulo; });
+    return '<li class="pai' + (s.f === s.n ? ' feito' : '') + '"><div class="lin">' +
+      '<input type="checkbox" id="tp-' + esc(t.id) + '" data-tarefapai="' + esc(t.id) + '" data-foco="tp-' + esc(t.id) + '"' + (s.f === s.n ? ' checked' : '') + (s.cls === 'and' ? ' data-meio="1"' : '') + (travar ? ' disabled' : '') + '>' +
+      '<label for="tp-' + esc(t.id) + '" class="tarefa"><span>' + esc(t.texto) + '</span>' + metaHtml(metaT) + '</label></div>' +
+      '<ul class="itens">' + kids.map(function (i) {
+        return folhaHtml(i, [esc(frentesPorId[i.grupo_id] || '')], travar);
+      }).join('') + '</ul></li>';
+  }
+
   function cartaoFase(f, travar, dia) {
-    var s = situacao(f.tarefas);
+    var lista = [];
+    f.tarefas.forEach(function (t) { lista = lista.concat(folhasDaTarefa(t)); });
+    var s = situacao(lista);
     if (!grupoPassa(s)) return '';
     var chave = 'f:' + f.id;
-    var ab = aberto(chave, f.tarefas);
+    var ab = aberto(chave, lista);
     var atrasada = f.fim && f.fim < dia && s.f < s.n;
-    var tarefas = f.tarefas.filter(passaFiltro);
     return '<li class="grupo ' + s.cls + (travar ? ' travado' : '') + '">' +
       '<div class="linha">' +
       '<button type="button" class="caret" data-abrir="' + esc(chave) + '" data-foco="c-' + esc(chave) + '" aria-expanded="' + ab + '" aria-controls="corpo-' + esc(chave) + '" aria-label="' + (ab ? 'Recolher ' : 'Expandir ') + esc(f.titulo) + '">' + CHEVRON + '</button>' +
@@ -351,13 +441,20 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       (atrasada ? '<span class="atrasada">Atrasada</span>' : '<span class="pill ' + s.cls + '">' + s.txt + '</span>') +
       '</div>' +
       '<div class="corpo" id="corpo-' + esc(chave) + '"' + (ab ? '' : ' hidden') + '>' +
-      '<ul class="itens">' + tarefas.map(function (t) {
-        var meta = [periodo(t.inicio, t.fim), t.duracao, t.responsavel].filter(Boolean).map(esc);
-        if (!t.feito && t.fim && t.fim < dia) meta.push('<span class="tatraso">Atrasada</span>');
-        return '<li' + (t.feito ? ' class="feito"' : '') + '><input type="checkbox" id="t-' + esc(t.id) + '" data-tarefa="' + esc(t.id) + '" data-foco="t-' + esc(t.id) + '"' + (t.feito ? ' checked' : '') + (travar ? ' disabled' : '') + '>' +
-          '<label for="t-' + esc(t.id) + '" class="tarefa"><span>' + esc(t.texto) + '</span><span class="tmeta">' + meta.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</span></label></li>';
-      }).join('') + '</ul>' +
+      '<ul class="itens">' + f.tarefas.map(function (t) { return tarefaHtml(t, travar, dia); }).join('') + '</ul>' +
       '</div></li>';
+  }
+
+  // escopo do resumo: as folhas da fase escolhida (lista única)
+  function escopoResumo() {
+    if (unificado || !temCronograma) return folhas.filter(noEscopo);
+    // antes do supabase_unificar.sql, cada aba conta a sua lista
+    if (ui.aba === 'cronograma') {
+      var l = [];
+      fases.forEach(function (f) { if (ui.fase === 'todas' || f.id === ui.fase) l = l.concat(f.tarefas); });
+      return l;
+    }
+    return itens;
   }
 
   function render() {
@@ -383,27 +480,14 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     var dia = hoje();
     if (!document.getElementById('lista')) montarCasca();
 
-    // escopo do resumo: aba atual + fase escolhida
-    var visiveis = fasesVisiveis();
-    var idsFases = {};
-    visiveis.forEach(function (f) { idsFases[f.id] = true; });
-    var escopo = [];
-    if (ui.aba === 'cronograma') {
-      visiveis.forEach(function (f) { escopo = escopo.concat(f.tarefas); });
-    } else {
-      grupos.forEach(function (g) {
-        if (ui.fase === 'todas' || idsFases[g.fase_id]) escopo = escopo.concat(g.itens);
-      });
-    }
+    var escopo = escopoResumo();
     var total = escopo.length;
-    var feitos = escopo.filter(function (i) { return i.feito; }).length;
+    var feitos = escopo.filter(function (x) { return x.feito; }).length;
     var pct = total ? Math.round(feitos * 100 / total) : 0;
     var ultima = null;
-    grupos.forEach(function (g) { g.itens.forEach(function (i) { if (i.atualizado_em && (!ultima || i.atualizado_em > ultima)) ultima = i.atualizado_em; }); });
-    fases.forEach(function (f) { f.tarefas.forEach(function (t) { if (t.atualizado_em && (!ultima || t.atualizado_em > ultima)) ultima = t.atualizado_em; }); });
+    itens.concat(tarefas).forEach(function (x) { if (x.atualizado_em && (!ultima || x.atualizado_em > ultima)) ultima = x.atualizado_em; });
     var faseAtual = ui.fase !== 'todas' ? acharFase(ui.fase) : null;
-    var rotulo = (ui.aba === 'cronograma' ? 'tarefas concluídas' : 'itens concluídos') +
-      (faseAtual ? ' em ' + (faseAtual.titulo_curto || faseAtual.titulo) : '') + ' · ' + pct + '%';
+    var rotulo = 'itens concluídos' + (faseAtual ? ' em ' + tituloCurto(faseAtual) : '') + ' · ' + pct + '%';
 
     document.getElementById('resumo').innerHTML =
       '<div class="placar"><span class="num">' + feitos + '<span class="de">/' + total + '</span></span><span class="rot">' + esc(rotulo) + '</span></div>' +
@@ -421,23 +505,14 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       b.setAttribute('aria-selected', String(b.getAttribute('data-aba') === ui.aba));
     });
 
-    var h = '';
+    var h;
     if (ui.aba === 'cronograma') {
-      var cards = visiveis.map(function (f) { return cartaoFase(f, travar, dia); }).join('');
-      h = cards ? '<ul class="arvore">' + cards + '</ul>' : '<p class="vazio">Nenhuma tarefa com esse filtro.</p>';
-    } else if (temCronograma) {
-      visiveis.forEach(function (f) {
-        var cards = grupos.filter(function (g) { return g.fase_id === f.id; }).map(function (g) { return cartaoFrente(g, travar); }).join('');
-        if (cards) h += '<section class="bloco"><h2 class="secao">' + esc(f.titulo) + ' <span class="periodo">' + esc(periodo(f.inicio, f.fim)) + '</span></h2><ul class="arvore">' + cards + '</ul></section>';
-      });
-      if (ui.fase === 'todas') {
-        var semFase = grupos.filter(function (g) { return !g.fase_id || !acharFase(g.fase_id); }).map(function (g) { return cartaoFrente(g, travar); }).join('');
-        if (semFase) h += '<section class="bloco"><h2 class="secao">Sem fase definida</h2><ul class="arvore">' + semFase + '</ul></section>';
-      }
-      if (!h) h = '<p class="vazio">Nenhuma frente ' + (faseAtual ? 'ligada a esta fase' : 'com esse filtro') + '.</p>';
+      var visiveis = ui.fase === 'todas' ? fases : fases.filter(function (f) { return f.id === ui.fase; });
+      var cardsF = visiveis.map(function (f) { return cartaoFase(f, travar, dia); }).join('');
+      h = cardsF ? '<ul class="arvore">' + cardsF + '</ul>' : '<p class="vazio">Nenhum item com esse filtro.</p>';
     } else {
-      var todas = grupos.map(function (g) { return cartaoFrente(g, travar); }).join('');
-      h = todas ? '<ul class="arvore">' + todas + '</ul>' : '<p class="vazio">Nenhuma etapa com esse filtro.</p>';
+      var cardsG = grupos.map(function (g) { return cartaoFrente(g, travar, dia); }).join('');
+      h = cardsG ? '<ul class="arvore">' + cardsG + '</ul>' : '<p class="vazio">Nenhum item com esse filtro.</p>';
     }
 
     var lista = document.getElementById('lista');
@@ -475,24 +550,17 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       sb.from('cronograma_tarefas').select('*').order('ordem')
     ]).then(function (r) {
       if (r[0].error || r[1].error) throw (r[0].error || r[1].error);
-      var mapa = {};
-      grupos = r[0].data.map(function (g) { g.itens = []; mapa[g.id] = g; return g; });
-      r[1].data.forEach(function (i) { if (mapa[i.grupo_id]) mapa[i.grupo_id].itens.push(i); });
-
-      // o cronograma é opcional: se as tabelas ainda não existem, o site mostra só as frentes
-      if (r[2].error || r[3].error) {
-        fases = [];
-      } else {
-        var mf = {};
-        fases = r[2].data.map(function (f) { f.tarefas = []; mf[f.id] = f; return f; });
-        r[3].data.forEach(function (t) { if (mf[t.fase_id]) mf[t.fase_id].tarefas.push(t); });
-      }
+      var semCrono = r[2].error || r[3].error;
+      var rf = semCrono ? [] : r[2].data;
+      var rt = semCrono ? [] : r[3].data;
+      unificado = rt.length > 0 && Object.prototype.hasOwnProperty.call(rt[0], 'grupo_id');
+      montar(r[0].data, r[1].data, rf, rt);
       temCronograma = fases.length > 0;
-      var assinatura = fases.map(function (f) { return f.id + '=' + (f.titulo_curto || f.titulo); }).join('|');
+
+      var assinatura = fases.map(function (f) { return f.id + '=' + tituloCurto(f); }).join('|');
       if (assinatura !== assinaturaCasca) {
         assinaturaCasca = assinatura;
-        var l = document.getElementById('lista');
-        if (l) root.innerHTML = '';   // fases mudaram: a casca é remontada no próximo desenho
+        if (document.getElementById('lista')) root.innerHTML = '';   // fases mudaram: remonta a casca
       }
 
       carga = 'pronto';
@@ -509,20 +577,41 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     });
   }
 
-  function marcar(tabela, ids, valor) {
-    var achar = tabela === 'cronograma_tarefas' ? acharTarefa : acharItem;
-    var antes = ids.map(function (id) { var it = achar(id); return [it, it.feito]; });
-    antes.forEach(function (p) { p[0].feito = valor; });
+  // alvos: lista de folhas (itens e/ou tarefas sem itens)
+  function marcar(alvos, valor) {
+    alvos = alvos.filter(function (x) { return x.feito !== valor; });
+    if (!alvos.length) { render(); return; }
+    var antes = alvos.map(function (x) { return [x, x.feito]; });
+    alvos.forEach(function (x) { x.feito = valor; });
+    var idsItens = alvos.filter(function (x) { return x.tipo === 'item'; }).map(function (x) { return x.id; });
+    var idsTarefas = alvos.filter(function (x) { return x.tipo === 'tarefa'; }).map(function (x) { return x.id; });
     salvando++;
     definirChip('and', 'Salvando…');
     render();
-    sb.from(tabela).update({ feito: valor }).in('id', ids).select('id, atualizado_em').then(function (r) {
+
+    function gravar(tabela, ids) {
+      if (!ids.length) return Promise.resolve({ ok: true, data: [] });
+      return sb.from(tabela).update({ feito: valor }).in('id', ids).select('id, atualizado_em').then(function (r) {
+        return { ok: !r.error && r.data && r.data.length === ids.length, erro: r.error, data: r.data || [], tabela: tabela };
+      });
+    }
+    Promise.all([gravar('etapas_itens', idsItens), gravar('cronograma_tarefas', idsTarefas)]).then(function (res) {
       salvando--;
-      if (r.error || !r.data || r.data.length !== ids.length) {
-        antes.forEach(function (p) { p[0].feito = p[1]; });
-        definirChip('erro', r.error ? 'Não foi possível salvar: ' + r.error.message : 'Não foi possível salvar: o banco recusou a alteração.');
+      var falha = res.filter(function (x) { return !x.ok; })[0];
+      if (falha) {
+        // volta só o que não foi gravado
+        antes.forEach(function (p) {
+          var gravado = res.some(function (x) { return x.ok && x.data.some(function (d) { return d.id === p[0].id; }); });
+          if (!gravado) p[0].feito = p[1];
+        });
+        definirChip('erro', falha.erro ? 'Não foi possível salvar: ' + falha.erro.message : 'Não foi possível salvar: o banco recusou a alteração.');
       } else {
-        r.data.forEach(function (d) { var it = achar(d.id); if (it) it.atualizado_em = d.atualizado_em; });
+        res.forEach(function (x) {
+          x.data.forEach(function (d) {
+            var alvo = x.tabela === 'etapas_itens' ? acharItem(d.id) : acharTarefa(d.id);
+            if (alvo) alvo.atualizado_em = d.atualizado_em;
+          });
+        });
         definirChip('ok', 'Tudo salvo');
       }
       render();
@@ -536,14 +625,16 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 
   function aoAtualizar(achar) {
     return function (p) {
-      var it = p.new && achar(p.new.id);
-      if (it && salvando === 0) {
-        it.feito = p.new.feito;
-        it.atualizado_em = p.new.atualizado_em;
-        it.texto = p.new.texto;
+      var x = p.new && achar(p.new.id);
+      if (salvando > 0) return;   // é o eco da própria marcação em andamento
+      var mesmoLugar = x && (x.tarefa_id || null) === (p.new.tarefa_id || null) &&
+        (x.grupo_id || null) === (p.new.grupo_id || null) && x.texto === p.new.texto;
+      if (mesmoLugar) {
+        x.feito = p.new.feito;
+        x.atualizado_em = p.new.atualizado_em;
         pedirRender();
-      } else if (!it) {
-        carregar();
+      } else {
+        carregar();   // mudou texto, frente ou tarefa: recarrega tudo
       }
     };
   }
@@ -565,16 +656,26 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
   root.addEventListener('change', function (e) {
     var t = e.target;
     if (carga !== 'pronto' || salvando > 0) return;
+    var v = t.checked;
     if (t.hasAttribute('data-item')) {
-      marcar('etapas_itens', [t.getAttribute('data-item')], t.checked);
+      var i = acharItem(t.getAttribute('data-item'));
+      if (i) marcar([i], v);
+    } else if (t.hasAttribute('data-tarefa')) {
+      var tf = acharTarefa(t.getAttribute('data-tarefa'));
+      if (tf) marcar([tf], v);
+    } else if (t.hasAttribute('data-tarefapai')) {
+      var tp = acharTarefa(t.getAttribute('data-tarefapai'));
+      if (tp) marcar(tp.filhos.slice(), v);
     } else if (t.hasAttribute('data-grupo')) {
       var g = acharGrupo(t.getAttribute('data-grupo'));
-      if (g && g.itens.length) marcar('etapas_itens', g.itens.map(function (i) { return i.id; }), t.checked);
-    } else if (t.hasAttribute('data-tarefa')) {
-      marcar('cronograma_tarefas', [t.getAttribute('data-tarefa')], t.checked);
+      if (g) marcar(g.folhas.filter(noEscopo), v);
     } else if (t.hasAttribute('data-fasebox')) {
       var f = acharFase(t.getAttribute('data-fasebox'));
-      if (f && f.tarefas.length) marcar('cronograma_tarefas', f.tarefas.map(function (x) { return x.id; }), t.checked);
+      if (f) {
+        var l = [];
+        f.tarefas.forEach(function (x) { l = l.concat(unificado ? folhasDaTarefa(x) : [x]); });
+        marcar(l, v);
+      }
     }
   });
 
@@ -584,8 +685,17 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     if (b.hasAttribute('data-abrir')) {
       var chave = b.getAttribute('data-abrir');
       var id = chave.slice(2);
-      var lista = chave.charAt(0) === 'f' ? (acharFase(id) || {}).tarefas : (acharGrupo(id) || {}).itens;
-      if (!lista) return;
+      var lista;
+      if (chave.charAt(0) === 'f') {
+        var f = acharFase(id);
+        if (!f) return;
+        lista = [];
+        f.tarefas.forEach(function (t) { lista = lista.concat(folhasDaTarefa(t)); });
+      } else {
+        var g = acharGrupo(id);
+        if (!g) return;
+        lista = g.folhas.filter(noEscopo);
+      }
       ui.abertos[chave] = !aberto(chave, lista);
     } else if (b.hasAttribute('data-filtro')) {
       ui.filtro = b.getAttribute('data-filtro');
@@ -595,8 +705,8 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       ui.aba = b.getAttribute('data-aba');
     } else if (b.hasAttribute('data-acao')) {
       var abrir = b.getAttribute('data-acao') === 'abrir';
-      if (ui.aba === 'cronograma') fases.forEach(function (f) { ui.abertos['f:' + f.id] = abrir; });
-      else grupos.forEach(function (g) { ui.abertos['g:' + g.id] = abrir; });
+      if (ui.aba === 'cronograma') fases.forEach(function (fx) { ui.abertos['f:' + fx.id] = abrir; });
+      else grupos.forEach(function (gx) { ui.abertos['g:' + gx.id] = abrir; });
     } else {
       return;
     }

@@ -21,6 +21,11 @@ Depois do `supabase.sql`, rode também o `supabase_cronograma.sql` (mesmo caminh
 
 Com isso o site ganha a aba **Cronograma** e o filtro por fase, que vale nas duas abas. Sem esse script, o site continua mostrando só as frentes.
 
+Por último, rode o `supabase_unificar.sql`. Ele junta as duas listas numa só: cada item das frentes fica pendurado numa tarefa do cronograma (`etapas_itens.tarefa_id`) e cada tarefa ganha uma frente (`cronograma_tarefas.grupo_id`). As duas abas passam a mostrar os mesmos itens, só que organizados de jeitos diferentes:
+
+- **Frentes de trabalho:** frente → itens.
+- **Cronograma:** fase → tarefa → itens. Uma tarefa com itens se conclui quando todos estão marcados; uma tarefa sem itens é marcada direto.
+
 ## 2. Ligar o site ao banco
 
 1. Em **Project Settings > Data API**, copie a **Project URL** (algo como `https://abcdefgh.supabase.co`).
