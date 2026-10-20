@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Etapas do GER033</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: uma coluna estreita; resumo do progresso no topo e a árvore de etapas abaixo, cada frente expansível com seus itens. */
+:root {
+  --bg: #F3F6F4;
+  --surface: #FFFFFF;
+  --ink: #15201C;
+  --muted: #5A6963;
+  --line: #D9E1DD;
+  --accent: #1D7552;
+  --accent-soft: #E0F0E8;
+  --warn: #9A6400;
+  --warn-soft: #FAEFD6;
+  --idle: #66707A;
+  --idle-soft: #ECEFF1;
+  --bad: #B3261E;
+  --bad-soft: #FBE3E1;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1412; --surface: #151D1A; --ink: #E4ECE8; --muted: #95A49E; --line: #27322E;
+    --accent: #4DC28E; --accent-soft: #163227; --warn: #E2A83C; --warn-soft: #33270E;
+    --idle: #9AA4AE; --idle-soft: #212926; --bad: #F2847C; --bad-soft: #3A1A18;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px;
+}
+.topo { display: grid; gap: 8px; }
+.eyebrow { margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(30px, 6vw, 40px); line-height: 1.05; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); max-width: 62ch; }
+
+.resumo { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 12px; }
+.placar { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.num { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.num .de { color: var(--muted); font-weight: 600; font-size: 22px; }
+.rot { color: var(--muted); }
+.barra { height: 8px; border-radius: 99px; background: var(--idle-soft); overflow: hidden; }
+.barra span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s ease; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 500; background: var(--idle-soft); color: var(--idle); }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.ok { background: var(--accent-soft); color: var(--accent); }
+.chip.and { background: var(--warn-soft); color: var(--warn); }
+.chip.erro { background: var(--bad-soft); color: var(--bad); }
+
+.ferr { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+.filtros { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.filtros button { border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--muted); }
+.filtros button:last-child { border-right: 0; }
+.filtros button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.acoes { display: inline-flex; gap: 6px; }
+button { font: inherit; font-size: 13.5px; font-weight: 500; padding: 6px 12px; cursor: pointer; }
+.acoes button { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.acoes button:hover, .filtros button:hover:not([aria-pressed="true"]) { color: var(--ink); background: var(--idle-soft); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.arvore { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.grupo { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.linha { display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 8px; flex-wrap: wrap; }
+.caret { border: 0; background: transparent; color: var(--muted); width: 30px; height: 30px; padding: 0; border-radius: 6px; display: grid; place-items: center; flex: none; }
+.caret:hover { background: var(--idle-soft); color: var(--ink); }
+.caret svg { transition: transform .15s ease; }
+.caret[aria-expanded="true"] svg { transform: rotate(90deg); }
+input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex: none; cursor: pointer; }
+.titulo { font-weight: 600; flex: 1 1 200px; min-width: 0; cursor: pointer; }
+.conta { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pill { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.pill.ok { background: var(--accent-soft); color: var(--accent); }
+.pill.and { background: var(--warn-soft); color: var(--warn); }
+.pill.pend { background: var(--idle-soft); color: var(--idle); }
+
+.corpo { padding: 0 16px 14px 47px; display: grid; gap: 8px; }
+.desc, .nota { margin: 0; font-size: 14px; color: var(--muted); max-width: 64ch; }
+.nota { padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--ink); }
+.nota strong { color: var(--warn); font-weight: 600; }
+.itens { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 1px solid var(--line); display: grid; gap: 2px; }
+.itens li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; }
+.itens li input { margin-top: 2px; }
+.itens label { cursor: pointer; min-width: 0; }
+.itens li.feito label { color: var(--muted); }
+.vazio { margin: 0; padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; }
+.aviso { margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bad-soft); color: var(--ink); }
+.aviso strong { color: var(--bad); }
+.aviso code { font-family: var(--mono); font-size: 13px; }
+.travado input { cursor: not-allowed; }
+.rodape { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 480px) {
+  .corpo { padding-left: 16px; }
+  .ferr { flex-direction: column; }
+  .filtros { width: 100%; }
+  .filtros button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra span, .caret svg { transition: none; }
+}
+</style>
+</head>
+<body>
+<main id="root" class="wrap">
+  <header class="topo">
+    <p class="eyebrow">GER033 · Analista Virtual do Mapa Diário</p>
+    <h1>Etapas do projeto</h1>
+    <p class="lead">Carregando etapas…</p>
+  </header>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+  // ===== CONFIGURAÇÃO DO SUPABASE (único trecho a preencher) =====
+  // URL: painel do Supabase > Project Settings > Data API.
+  // Chave: Project Settings > API Keys > chave "publishable" (em projetos antigos, a "anon public").
+  // A chave pública pode ficar aqui: quem protege os dados são as regras do supabase.sql.
+  window.ETAPAS_CONFIG = {
+    url: "https://SEU-PROJETO.supabase.co",
+    chave: "COLE-AQUI-A-CHAVE-PUBLICA"
+  };
+</script>
+<script>
+(function () {
+  var LEAD = 'O projeto nasceu como um agente de IA para conferir o Mapa Diário. Essa conferência já foi feita internamente e está em produção, e o projeto foi atualizado para que o agente de IA atue nas explicações e nos laudos sobre os dados do mapa.';
+  var root = document.getElementById('root');
+  var cfg = window.ETAPAS_CONFIG || {};
+  var grupos = [];            // [{id, ordem, titulo, descricao, nota, itens: [...]}]
+  var fase = 'carregando';    // carregando | pronto | config | erro
+  var erroCarga = '';
+  var chip = ['neutro', 'Conectando…'];
+  var salvando = 0;
+  var ui = carregarUi();
+
+  var configurado = cfg.url && cfg.chave && cfg.url.indexOf('SEU-PROJETO') < 0 && cfg.chave.indexOf('COLE-AQUI') < 0;
+  var sb = null;
+  if (!configurado) {
+    fase = 'config';
+  } else if (!window.supabase || !window.supabase.createClient) {
+    fase = 'erro';
+    erroCarga = 'A biblioteca do Supabase não carregou. Confira a conexão com a internet e recarregue a página.';
+  } else {
+    sb = window.supabase.createClient(cfg.url, cfg.chave);
+  }
+
+  function carregarUi() {
+    try {
+      var s = localStorage.getItem('ger033-etapas-ui');
+      if (s) { var o = JSON.parse(s); return { abertos: o.abertos || null, filtro: o.filtro || 'todos' }; }
+    } catch (e) {}
+    return { abertos: null, filtro: 'todos' };
+  }
+  function salvarUi() {
+    try { localStorage.setItem('ger033-etapas-ui', JSON.stringify(ui)); } catch (e) {}
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  }
+  function fmt(iso) {
+    try { return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return ''; }
+  }
+  function situacao(g) {
+    var n = g.itens.length, f = g.itens.filter(function (i) { return i.feito; }).length;
+    if (n > 0 && f === n) return { n: n, f: f, cls: 'ok', txt: 'Concluído' };
+    if (f === 0) return { n: n, f: f, cls: 'pend', txt: 'Pendente' };
+    return { n: n, f: f, cls: 'and', txt: 'Em andamento' };
+  }
+  function aberto(g) {
+    if (ui.abertos && Object.prototype.hasOwnProperty.call(ui.abertos, g.id)) return ui.abertos[g.id];
+    var s = situacao(g);
+    return s.f < s.n;
+  }
+  function acharGrupo(id) { return grupos.filter(function (g) { return g.id === id; })[0]; }
+  function acharItem(id) {
+    for (var k = 0; k < grupos.length; k++) {
+      var it = grupos[k].itens.filter(function (i) { return i.id === id; })[0];
+      if (it) return it;
+    }
+    return null;
+  }
+  function definirChip(cls, txt) {
+    chip = [cls, txt];
+    var el = document.getElementById('chip');
+    if (el) { el.className = 'chip ' + cls; el.textContent = txt; }
+  }
+
+  var CHEVRON = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var NOMES_FILTRO = { todos: 'Todos', pendentes: 'Pendentes', feitos: 'Concluídos' };
+
+  function topo() {
+    return '<header class="topo">' +
+      '<p class="eyebrow">GER033 · Analista Virtual do Mapa Diário</p>' +
+      '<h1>Etapas do projeto</h1>' +
+      '<p class="lead">' + esc(LEAD) + '</p>' +
+      '</header>';
+  }
+
+  function render() {
+    if (fase === 'config') {
+      root.innerHTML = topo() + '<p class="aviso"><strong>Falta configurar o Supabase.</strong> Preencha a URL do projeto e a chave pública no bloco <code>ETAPAS_CONFIG</code> do <code>index.html</code> e recarregue a página.</p>';
+      return;
+    }
+    if (fase === 'erro') {
+      root.innerHTML = topo() + '<p class="aviso"><strong>Não foi possível carregar as etapas.</strong> ' + esc(erroCarga) + '</p>';
+      return;
+    }
+    if (fase === 'carregando') {
+      root.innerHTML = topo() + '<p class="vazio">Carregando etapas…</p>';
+      return;
+    }
+
+    var ativo = document.activeElement;
+    var foco = ativo && ativo.getAttribute ? ativo.getAttribute('data-foco') : null;
+    var total = 0, feitos = 0, ultima = null;
+    grupos.forEach(function (g) {
+      total += g.itens.length;
+      g.itens.forEach(function (i) {
+        if (i.feito) feitos++;
+        if (i.atualizado_em && (!ultima || i.atualizado_em > ultima)) ultima = i.atualizado_em;
+      });
+    });
+    var pct = total ? Math.round(feitos * 100 / total) : 0;
+    var travar = salvando > 0;
+
+    var h = topo() +
+      '<section class="resumo" aria-label="Progresso">' +
+      '<div class="placar"><span class="num">' + feitos + '<span class="de">/' + total + '</span></span><span class="rot">itens concluídos · ' + pct + '%</span></div>' +
+      '<div class="barra" role="progressbar" aria-label="Itens concluídos" aria-valuemin="0" aria-valuemax="' + total + '" aria-valuenow="' + feitos + '"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="meta"><span id="chip" class="chip ' + chip[0] + '" role="status">' + esc(chip[1]) + '</span>' +
+      (ultima ? '<span>Última alteração: ' + esc(fmt(ultima)) + '</span>' : '') + '</div>' +
+      '</section>' +
+      '<div class="ferr">' +
+      '<div class="filtros" role="group" aria-label="Mostrar">' +
+      ['todos', 'pendentes', 'feitos'].map(function (f) {
+        return '<button type="button" data-filtro="' + f + '" data-foco="f-' + f + '" aria-pressed="' + (ui.filtro === f) + '">' + NOMES_FILTRO[f] + '</button>';
+      }).join('') + '</div>' +
+      '<div class="acoes"><button type="button" data-acao="abrir" data-foco="a-abrir">Expandir tudo</button><button type="button" data-acao="fechar" data-foco="a-fechar">Recolher tudo</button></div>' +
+      '</div>';
+
+    var linhas = '';
+    grupos.forEach(function (g) {
+      var s = situacao(g);
+      if (ui.filtro === 'pendentes' && s.f === s.n) return;
+      if (ui.filtro === 'feitos' && s.f === 0) return;
+      var ab = aberto(g);
+      var itens = g.itens.filter(function (i) {
+        if (ui.filtro === 'pendentes') return !i.feito;
+        if (ui.filtro === 'feitos') return i.feito;
+        return true;
+      });
+      linhas += '<li class="grupo ' + s.cls + (travar ? ' travado' : '') + '">' +
+        '<div class="linha">' +
+        '<button type="button" class="caret" data-abrir="' + esc(g.id) + '" data-foco="c-' + esc(g.id) + '" aria-expanded="' + ab + '" aria-controls="corpo-' + esc(g.id) + '" aria-label="' + (ab ? 'Recolher ' : 'Expandir ') + esc(g.titulo) + '">' + CHEVRON + '</button>' +
+        '<input type="checkbox" id="g-' + esc(g.id) + '" data-grupo="' + esc(g.id) + '" data-foco="g-' + esc(g.id) + '"' + (s.n > 0 && s.f === s.n ? ' checked' : '') + (s.cls === 'and' ? ' data-meio="1"' : '') + (travar || !s.n ? ' disabled' : '') + '>' +
+        '<label for="g-' + esc(g.id) + '" class="titulo">' + esc(g.titulo) + '</label>' +
+        '<span class="conta">' + s.f + '/' + s.n + '</span>' +
+        '<span class="pill ' + s.cls + '">' + s.txt + '</span>' +
+        '</div>' +
+        '<div class="corpo" id="corpo-' + esc(g.id) + '"' + (ab ? '' : ' hidden') + '>' +
+        (g.descricao ? '<p class="desc">' + esc(g.descricao) + '</p>' : '') +
+        (g.nota && s.f < s.n ? '<p class="nota"><strong>Por que falta:</strong> ' + esc(g.nota) + '</p>' : '') +
+        '<ul class="itens">' + itens.map(function (i) {
+          return '<li' + (i.feito ? ' class="feito"' : '') + '><input type="checkbox" id="i-' + esc(i.id) + '" data-item="' + esc(i.id) + '" data-foco="i-' + esc(i.id) + '"' + (i.feito ? ' checked' : '') + (travar ? ' disabled' : '') + '><label for="i-' + esc(i.id) + '">' + esc(i.texto) + '</label></li>';
+        }).join('') + '</ul>' +
+        '</div></li>';
+    });
+    h += linhas ? '<ul class="arvore">' + linhas + '</ul>' : '<p class="vazio">Nenhuma etapa com esse filtro.</p>';
+    h += '<p class="rodape">As marcações ficam salvas para todos e aparecem sozinhas para quem estiver com a página aberta.</p>';
+
+    root.innerHTML = h;
+    Array.prototype.forEach.call(root.querySelectorAll('input[data-meio]'), function (i) { i.indeterminate = true; });
+    if (foco) {
+      var alvo = root.querySelector('[data-foco="' + foco + '"]');
+      if (alvo && !alvo.disabled) alvo.focus();
+    }
+  }
+
+  function carregar() {
+    return Promise.all([
+      sb.from('etapas_grupos').select('id, ordem, titulo, descricao, nota').order('ordem'),
+      sb.from('etapas_itens').select('id, grupo_id, ordem, texto, feito, atualizado_em').order('ordem')
+    ]).then(function (r) {
+      var eg = r[0].error, ei = r[1].error;
+      if (eg || ei) throw (eg || ei);
+      var mapa = {};
+      grupos = r[0].data.map(function (g) { g.itens = []; mapa[g.id] = g; return g; });
+      r[1].data.forEach(function (i) { if (mapa[i.grupo_id]) mapa[i.grupo_id].itens.push(i); });
+      fase = 'pronto';
+      if (chip[1] === 'Conectando…') definirChip('ok', 'Tudo salvo');
+      render();
+    }).catch(function (e) {
+      if (fase === 'pronto') {
+        definirChip('erro', 'Sem conexão com o banco. As marcações podem estar desatualizadas.');
+        return;
+      }
+      fase = 'erro';
+      erroCarga = (e && e.message ? e.message + '. ' : '') + 'Confira a URL e a chave no ETAPAS_CONFIG do index.html e se o supabase.sql foi executado.';
+      render();
+    });
+  }
+
+  function marcar(ids, valor) {
+    var antes = ids.map(function (id) { var it = acharItem(id); return [it, it.feito]; });
+    antes.forEach(function (p) { p[0].feito = valor; });
+    salvando++;
+    definirChip('and', 'Salvando…');
+    render();
+    sb.from('etapas_itens').update({ feito: valor }).in('id', ids).select('id, atualizado_em').then(function (r) {
+      salvando--;
+      if (r.error || !r.data || r.data.length !== ids.length) {
+        antes.forEach(function (p) { p[0].feito = p[1]; });
+        definirChip('erro', r.error ? 'Não foi possível salvar: ' + r.error.message : 'Não foi possível salvar: o banco recusou a alteração.');
+      } else {
+        r.data.forEach(function (d) { var it = acharItem(d.id); if (it) it.atualizado_em = d.atualizado_em; });
+        definirChip('ok', 'Tudo salvo');
+      }
+      render();
+    }, function () {
+      salvando--;
+      antes.forEach(function (p) { p[0].feito = p[1]; });
+      definirChip('erro', 'Sem conexão. A marcação não foi salva; tente de novo.');
+      render();
+    });
+  }
+
+  function ouvirMudancas() {
+    sb.channel('etapas-ger033')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'etapas_itens' }, function (p) {
+        var it = p.new && acharItem(p.new.id);
+        if (it && salvando === 0) {
+          it.feito = p.new.feito;
+          it.atualizado_em = p.new.atualizado_em;
+          it.texto = p.new.texto;
+          render();
+        } else if (!it) {
+          carregar();
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'etapas_itens' }, function () { carregar(); })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'etapas_itens' }, function () { carregar(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'etapas_grupos' }, function () { carregar(); })
+      .subscribe();
+  }
+
+  root.addEventListener('change', function (e) {
+    var t = e.target;
+    if (fase !== 'pronto' || salvando > 0) return;
+    if (t.hasAttribute('data-item')) {
+      marcar([t.getAttribute('data-item')], t.checked);
+    } else if (t.hasAttribute('data-grupo')) {
+      var g = acharGrupo(t.getAttribute('data-grupo'));
+      if (g && g.itens.length) marcar(g.itens.map(function (i) { return i.id; }), t.checked);
+    }
+  });
+
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || !root.contains(b)) return;
+    if (b.hasAttribute('data-abrir')) {
+      var g = acharGrupo(b.getAttribute('data-abrir'));
+      if (!g) return;
+      ui.abertos = ui.abertos || {};
+      ui.abertos[g.id] = !aberto(g);
+    } else if (b.hasAttribute('data-filtro')) {
+      ui.filtro = b.getAttribute('data-filtro');
+    } else if (b.hasAttribute('data-acao')) {
+      var abrir = b.getAttribute('data-acao') === 'abrir';
+      ui.abertos = {};
+      grupos.forEach(function (gr) { ui.abertos[gr.id] = abrir; });
+    } else {
+      return;
+    }
+    salvarUi();
+    render();
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && sb && fase === 'pronto' && salvando === 0) carregar();
+  });
+
+  render();
+  if (sb) { carregar(); ouvirMudancas(); }
+})();
+</script>
+</body>
+</html>
