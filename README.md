@@ -26,6 +26,14 @@ Por último, rode o `supabase_unificar.sql`. Ele junta as duas listas numa só: 
 - **Frentes de trabalho:** frente → itens.
 - **Cronograma:** fase → tarefa → itens. Uma tarefa com itens se conclui quando todos estão marcados; uma tarefa sem itens é marcada direto.
 
+Depois rode o `supabase_tipos_status.sql`. Ele acrescenta:
+
+- `tipo` (análise, desenvolvimento ou validação) em itens e tarefas, com filtro próprio no site;
+- `em_andamento`, que o botão "Em andamento" de cada item liga e desliga;
+- `depende_de` nas tarefas (as Predecessoras do MS Project). Uma tarefa só aparece como **Atrasada** se o prazo passou e tudo de que ela depende já está concluído; senão aparece como **Aguardando**.
+
+Todos os itens valem o mesmo no total. O site mostra quanto cada frente, fase e tarefa vale do projeto e quanto já foi concluído.
+
 ## 2. Ligar o site ao banco
 
 1. Em **Project Settings > Data API**, copie a **Project URL** (algo como `https://abcdefgh.supabase.co`).
