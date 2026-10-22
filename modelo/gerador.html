@@ -90,6 +90,8 @@ table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { position: sticky; top: 0; background: var(--surface); font-weight: 600; white-space: nowrap; }
 td.mono { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+#t-tarefas th:nth-child(3), #t-tarefas td:nth-child(3) { min-width: 260px; }
+#t-tarefas th:nth-child(5), #t-tarefas td:nth-child(5) { min-width: 160px; }
 tr.fase td { background: var(--accent-soft); font-weight: 600; }
 .inferido { color: var(--warn); }
 .saida { display: grid; gap: 8px; }
@@ -184,7 +186,8 @@ tr.fase td { background: var(--accent-soft); font-weight: 600; }
   function norm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
   function limpa(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
   function semPonto(s) { return limpa(s).replace(/\.$/, '').trim(); }
-  function palavras(s) { return norm(s).replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter(Boolean); }
+  // "e-mail" vira "email" antes de separar as palavras
+  function palavras(s) { return norm(s).replace(/([a-z0-9])-([a-z0-9])/g, '$1$2').replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter(Boolean); }
   function pad(n, w) { n = String(n); while (n.length < (w || 2)) n = '0' + n; return n; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
