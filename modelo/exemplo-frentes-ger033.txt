@@ -1,0 +1,12 @@
+Frente	Descrição	Por que falta
+Planejamento e requisitos	Levantamento de requisitos, setup do desenvolvimento e definições que abrem cada fase.	
+Base de dados do mapa		
+Conferência diária automática		
+E-mail organizado e explicado		
+Limites de variação em tabela		
+Incluir as conferências do Tiago no e-mail	Levar para o e-mail a conferência que o Tiago (suporte) ainda faz à mão de madrugada, para pegar os erros mais graves antes da revisão da equipe gerencial.	Primeiro foi desenvolvida a validação do mapa que a equipe gerencial fazia em planilha. Concluída essa parte, entra a validação feita pelo Tiago.
+Registrar alertas e erros para a mensageria	A conferência grava cada alerta e erro numa tabela de ocorrências; a mensageria lê essa tabela e avisa a equipe pelo WhatsApp, sem repetir o que já foi avisado.	A estrutura está desenhada e o código está em fase inicial: ainda faltam revisão, testes e implantação. O envio depende da reestruturação das notificações (Frente A).
+Criar a página APEX	Uma página para consultar a conferência no celular, quase um espelho do e-mail.	Foi iniciada, mas com o remanejamento das demandas do projeto ficou para um segundo momento. Será a última etapa do desenvolvimento interno, porque reúne tudo o que está no e-mail numa visualização de acesso mais fácil.
+Criar a tabela detalhada para o agente de IA	Uma tabela nova com mais detalhes das informações do mapa, além da página principal, para o agente da Paipe consumir.	Aguarda a finalização dos dados enviados por e-mail; depois disso, esta etapa começa. Ela libera a Paipe para a parte detalhada dos laudos; a parte macro já pode começar com as views que existem.
+Paipe: agente de IA	Reunião, acesso e views para a Paipe, e as tarefas dela no cronograma: conferir os números do mapa, alimentar a IA, explicar os movimentos e gerar os laudos.	O acesso já foi liberado. A Paipe começa pelos laudos macro, com as views que já existem; a parte detalhada espera a tabela nova e a view dela.
+Testes e documentação	Testes internos, validação com usuários internos e documentação de cada fase.	

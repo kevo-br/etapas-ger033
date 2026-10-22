@@ -1,0 +1,37 @@
+Id	Nível da estrutura de tópicos	Nome da Tarefa	Duração	Início	Término	Predecessoras	Nomes dos recursos	% concluída	Frente
+1	1	GER033: Analista Virtual do Mapa Diário	162 dias	Ter 12/05/26	Qua 23/12/26			20%	
+2	2	Detecção de anomalias	56 dias	Ter 12/05/26	Ter 28/07/26			43%	
+3	3	Levantamento de requisitos e entendimento do Mapa Diário	3 dias	Ter 12/05/26	Qui 14/05/26		Eberton	100%	Planejamento e requisitos
+4	3	Mapeamento das fontes de dados	4 dias	Sex 15/05/26	Qua 20/05/26	3	Eberton	100%	Base de dados do mapa
+5	3	Definição de SETUP de desenvolvimento interno	10 dias	Qua 20/05/26	Ter 02/06/26		Hartz;Ebraim	100%	Planejamento e requisitos
+6	3	Definição das anomalias	10 dias	Qua 03/06/26	Ter 16/06/26	5	Eberton	100%	Planejamento e requisitos
+7	3	Regras de Conferência, validações e critérios de inconsistência.	15 dias	Qua 17/06/26	Ter 07/07/26	6	Eberton	100%	Conferência diária automática
+8	3	Reunião com a Paipe	0 dias	Qua 13/05/26	Qua 13/05/26		Eberton	100%	Paipe: agente de IA
+9	3	Estruturação da lógica de cruzamento com dados de sistema.	0 dias	Seg 08/06/26	Seg 08/06/26		Paipe	0%	Paipe: agente de IA
+10	3	Desenvolvimento do Analista Virtual.	0 dias	Qua 13/05/26	Qua 13/05/26		Paipe	0%	Paipe: agente de IA
+11	3	Configuração dos resumos comparativos mês atual vs. ano anterior	0 dias	Qua 13/05/26	Qua 13/05/26		Paipe	0%	Paipe: agente de IA
+12	3	Testes internos, validação com usuários internos e ajustes	35 dias	Qua 13/05/26	Ter 30/06/26	11	Eberton	0%	Testes e documentação
+13	3	Mapeamento de estruturas necessárias para atendimento de alertas (inclusive SMS)	15 dias	Qua 01/07/26	Ter 21/07/26	12		0%	Registrar alertas e erros para a mensageria
+14	3	Documentação e disponibilização da solução.	5 dias	Qua 22/07/26	Ter 28/07/26	13	Eberton	0%	Testes e documentação
+15	2	Validação e justificativa	55 dias	Qua 22/07/26	Ter 06/10/26			0%	
+16	3	Levantamento de requisitos e entendimento das fontes de dados e regras de conferência.	15 dias	Qua 22/07/26	Ter 11/08/26	13	Eberton	0%	Planejamento e requisitos
+17	3	Definição dos critérios de inconsistência.	0 dias	Ter 11/08/26	Ter 11/08/26	16	Paipe	0%	Paipe: agente de IA
+18	3	Estruturação da lógica de cruzamento com dados de sistema.	0 dias	Ter 11/08/26	Ter 11/08/26	17	Paipe	0%	Paipe: agente de IA
+19	3	Desenvolvimento do Analista Virtual.	0 dias	Ter 11/08/26	Ter 11/08/26	18	Paipe	0%	Paipe: agente de IA
+20	3	Configuração dos resumos comparativos	0 dias	Ter 11/08/26	Ter 11/08/26	19	Paipe	0%	Paipe: agente de IA
+21	3	Testes internos, validação com usuários internos e ajustes.	35 dias	Qua 12/08/26	Ter 29/09/26	20	Eberton	0%	Testes e documentação
+22	3	Documentação e disponibilização da solução.	5 dias	Qua 30/09/26	Ter 06/10/26	21	Eberton	0%	Testes e documentação
+23	2	Resumo e insights do Mapa	55 dias	Qua 30/09/26	Ter 15/12/26			0%	
+24	3	Levantamento de requisitos e entendimento das fontes de dados e regras.	15 dias	Qua 30/09/26	Ter 20/10/26	21	Eberton	0%	Planejamento e requisitos
+25	3	Definição dos critérios de cruzamento dos dados e estruturação da lógica	0 dias	Ter 20/10/26	Ter 20/10/26	24	Paipe	0%	Paipe: agente de IA
+26	3	Desenvolvimento do Analista Virtual.	0 dias	Ter 20/10/26	Ter 20/10/26	25	Paipe	0%	Paipe: agente de IA
+27	3	Configuração dos resumos comparativos	0 dias	Ter 20/10/26	Ter 20/10/26	26	Paipe	0%	Paipe: agente de IA
+28	3	Testes internos, validação com usuários internos e ajustes	35 dias	Qua 21/10/26	Ter 08/12/26	27	Eberton	0%	Testes e documentação
+29	3	Documentação e disponibilização da solução.	5 dias	Qua 09/12/26	Ter 15/12/26	28	Eberton	0%	Testes e documentação
+30	2	Interação do Usuário com uma Platafroma para Esclarecimentos	6 dias	Qua 16/12/26	Qua 23/12/26			0%	
+31	3	Levantamento de requisitos e entendimento das fontes de dados e regras.	1 dia	Qua 16/12/26	Qua 16/12/26	23	Paipe	0%	Paipe: agente de IA
+32	3	Definição dos critérios de cruzamento dos dados e estruturação da lógica	1 dia	Qui 17/12/26	Qui 17/12/26	31	Paipe	0%	Paipe: agente de IA
+33	3	Desenvolvimento do Analista Virtual.	1 dia	Sex 18/12/26	Sex 18/12/26	32	Paipe	0%	Paipe: agente de IA
+34	3	Configuração dos resumos comparativos	1 dia	Seg 21/12/26	Seg 21/12/26	33	Paipe	0%	Paipe: agente de IA
+35	3	Testes internos, validação com usuários internos e ajustes	1 dia	Ter 22/12/26	Ter 22/12/26	34	Eberton	0%	Testes e documentação
+36	3	Documentação e disponibilização da solução.	1 dia	Qua 23/12/26	Qua 23/12/26	35	Eberton	0%	Testes e documentação

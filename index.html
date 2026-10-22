@@ -168,7 +168,6 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 <body>
 <main id="root" class="wrap">
   <header class="topo">
-    <p class="eyebrow">GER033 · Analista Virtual do Mapa Diário</p>
     <h1>Etapas do projeto</h1>
     <p class="lead">Carregando etapas…</p>
   </header>
@@ -176,24 +175,35 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
-  // ===== CONFIGURAÇÃO DO SUPABASE (único trecho a preencher) =====
-  // URL: painel do Supabase > Project Settings > Data API.
-  // Chave: Project Settings > API Keys > chave "publishable" (em projetos antigos, a "anon public").
-  // A chave pública pode ficar aqui: quem protege os dados são as regras do supabase.sql.
+  // ===== CONFIGURAÇÃO (único trecho que muda de um projeto para outro) =====
+  // url:   painel do Supabase > Project Settings > Data API (só o endereço, sem /rest/v1).
+  // chave: Project Settings > API Keys > chave "publishable" (em projetos antigos, a "anon public").
+  //        A chave pública pode ficar aqui: quem protege os dados são as regras do schema.sql.
+  // projeto: textos do topo da página e o nome da aba do navegador.
   window.ETAPAS_CONFIG = {
     url: "https://yidbazcnjsbwwgddbzoh.supabase.co",
-    chave: "sb_publishable_nqX9eiXFnimoAzclEzjhYg_Wm_HSkO7"
+    chave: "sb_publishable_nqX9eiXFnimoAzclEzjhYg_Wm_HSkO7",
+    projeto: {
+      aba: "Etapas do GER033",
+      rotulo: "GER033 · Analista Virtual do Mapa Diário",
+      titulo: "Etapas do projeto",
+      descricao: "O projeto nasceu como um agente de IA para conferir o Mapa Diário. Essa conferência já foi feita internamente e está em produção, e o projeto foi atualizado para que o agente de IA atue nas explicações e nos laudos sobre os dados do mapa."
+    }
   };
 </script>
 <script>
 (function () {
-  var LEAD = 'O projeto nasceu como um agente de IA para conferir o Mapa Diário. Essa conferência já foi feita internamente e está em produção, e o projeto foi atualizado para que o agente de IA atue nas explicações e nos laudos sobre os dados do mapa.';
   var NOMES_FILTRO = { todos: 'Todos', pendentes: 'Pendentes', feitos: 'Concluídos' };
   var TIPOS = { analise: 'Análise', desenvolvimento: 'Desenvolvimento', validacao: 'Validação' };
   var CHEVRON = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   var root = document.getElementById('root');
   var cfg = window.ETAPAS_CONFIG || {};
+  var PROJ = cfg.projeto || {};
+  if (PROJ.aba) document.title = PROJ.aba;
+  // as preferências de tela (aba, filtros, o que está aberto) ficam no navegador, separadas por projeto:
+  // todos os sites do mesmo usuário no GitHub Pages dividem o mesmo localStorage
+  var CHAVE_UI = 'etapas-ui:' + (cfg.url || location.pathname);
 
   // Modelo:
   //  grupos   = frentes de trabalho
@@ -227,7 +237,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
   function carregarUi() {
     var padrao = { abertos: {}, filtro: 'todos', aba: 'frentes', fase: 'todas', tipo: 'todos' };
     try {
-      var s = localStorage.getItem('ger033-etapas-ui-v2');
+      var s = localStorage.getItem(CHAVE_UI);
       if (s) {
         var o = JSON.parse(s);
         return { abertos: o.abertos || {}, filtro: o.filtro || 'todos', aba: o.aba || 'frentes', fase: o.fase || 'todas', tipo: o.tipo || 'todos', filtrosAbertos: !!o.filtrosAbertos };
@@ -236,7 +246,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     return padrao;
   }
   function salvarUi() {
-    try { localStorage.setItem('ger033-etapas-ui-v2', JSON.stringify(ui)); } catch (e) {}
+    try { localStorage.setItem(CHAVE_UI, JSON.stringify(ui)); } catch (e) {}
   }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
@@ -348,6 +358,13 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 
     function ordemFase(x) { var f = mf[faseDe(x)]; return f ? f.ordem : 999; }
     folhas.forEach(function (x) { if (mg[x.grupo_id]) mg[x.grupo_id].folhas.push(x); });
+    // o que não tem frente (ou aponta para uma frente que não existe) vai para um grupo à parte
+    var semFrente = folhas.filter(function (x) { return !mg[x.grupo_id]; });
+    if (semFrente.length) {
+      var sem = { id: '_sem', ordem: 99999, titulo: 'Sem frente definida', descricao: null, nota: null, folhas: semFrente };
+      grupos.push(sem);
+      mg[sem.id] = sem;
+    }
     grupos.forEach(function (g) {
       g.folhas.sort(function (a, b) {
         var da = inicioDe(a) || '9999', db = inicioDe(b) || '9999';
@@ -356,15 +373,16 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       });
     });
     temTipos = folhas.some(function (x) { return !!x.tipo; });
-    temAndamento = itens.length > 0 && Object.prototype.hasOwnProperty.call(itens[0], 'em_andamento');
+    var amostra = itens[0] || tarefas[0];
+    temAndamento = !!amostra && Object.prototype.hasOwnProperty.call(amostra, 'em_andamento');
   }
 
   // ---------- desenho ----------
   function topo() {
     return '<header class="topo">' +
-      '<p class="eyebrow">GER033 · Analista Virtual do Mapa Diário</p>' +
-      '<h1>Etapas do projeto</h1>' +
-      '<p class="lead">' + esc(LEAD) + '</p>' +
+      (PROJ.rotulo ? '<p class="eyebrow">' + esc(PROJ.rotulo) + '</p>' : '') +
+      '<h1>' + esc(PROJ.titulo || 'Etapas do projeto') + '</h1>' +
+      (PROJ.descricao ? '<p class="lead">' + esc(PROJ.descricao) + '</p>' : '') +
       '</header>';
   }
 

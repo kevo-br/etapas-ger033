@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerador do site de etapas</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231D7552'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: uma coluna; quatro passos de entrada numerados e, abaixo, o resultado (revisão + arquivos para copiar). Mesmas cores e fontes do site de etapas. */
+:root {
+  --bg: #F3F6F4;
+  --surface: #FFFFFF;
+  --ink: #15201C;
+  --muted: #5A6963;
+  --line: #D9E1DD;
+  --accent: #1D7552;
+  --accent-soft: #E0F0E8;
+  --warn: #9A6400;
+  --warn-soft: #FAEFD6;
+  --bad: #B3261E;
+  --bad-soft: #FBE3E1;
+  --idle-soft: #ECEFF1;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1412; --surface: #151D1A; --ink: #E4ECE8; --muted: #95A49E; --line: #27322E;
+    --accent: #4DC28E; --accent-soft: #163227; --warn: #E2A83C; --warn-soft: #33270E;
+    --bad: #F2847C; --bad-soft: #3A1A18; --idle-soft: #212926;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 880px; margin: 0 auto;
+  padding-block: 32px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 22px;
+}
+.topo { display: grid; gap: 8px; }
+.eyebrow { margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5.5vw, 38px); line-height: 1.05; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); max-width: 66ch; }
+h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+h3 { margin: 10px 0 0; font-size: 15px; font-weight: 600; }
+.n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-family: var(--mono); font-size: 13px; }
+.opc { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+.passo { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 12px; }
+.ajuda { margin: 0; font-size: 14px; color: var(--muted); max-width: 72ch; }
+.ajuda code, .resultado code { font-family: var(--mono); font-size: 12.5px; background: var(--idle-soft); padding: 1px 5px; border-radius: 4px; }
+.campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.campo { display: grid; gap: 4px; min-width: 0; }
+.campo.largo { grid-column: 1 / -1; }
+label { font-size: 13px; font-weight: 600; }
+input[type="text"], textarea {
+  width: 100%; min-width: 0; font: inherit; font-size: 14px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+}
+textarea { font-family: var(--mono); font-size: 12.5px; line-height: 1.45; resize: vertical; white-space: pre; overflow-x: auto; }
+textarea.texto { font-family: var(--body); font-size: 14px; white-space: pre-wrap; }
+input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+button { font: inherit; font-size: 13.5px; font-weight: 500; padding: 7px 14px; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+button:hover { background: var(--idle-soft); }
+button.primario { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; padding: 9px 22px; font-size: 14.5px; }
+button.primario:hover { filter: brightness(1.08); background: var(--accent); }
+.linha-botoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.status { font-size: 13.5px; color: var(--muted); }
+.status.erro { color: var(--bad); font-weight: 600; }
+
+.resultado { display: grid; gap: 14px; }
+.avisos { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.avisos li { padding: 8px 12px; border-radius: 8px; font-size: 14px; background: var(--warn-soft); }
+.avisos li.erro { background: var(--bad-soft); }
+.avisos li.info { background: var(--accent-soft); }
+.numeros { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--muted); }
+.numeros strong { font-family: var(--display); font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.tabela-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; max-height: 420px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { position: sticky; top: 0; background: var(--surface); font-weight: 600; white-space: nowrap; }
+td.mono { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+tr.fase td { background: var(--accent-soft); font-weight: 600; }
+.inferido { color: var(--warn); }
+.saida { display: grid; gap: 8px; }
+.saida textarea { min-height: 220px; }
+.rodape { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .campos { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="topo">
+    <p class="eyebrow">Modelo · Site de etapas</p>
+    <h1>Gerador do site de etapas</h1>
+    <p class="lead">Cole o cronograma do MS Project e, se quiser, os itens e as frentes. O gerador monta o <code>dados.sql</code> para o Supabase e o bloco de configuração do <code>index.html</code>. Tudo roda no seu navegador; nada é enviado para lugar nenhum.</p>
+  </header>
+
+  <section class="passo" aria-labelledby="t-projeto">
+    <h2 id="t-projeto"><span class="n">1</span> Projeto</h2>
+    <div class="campos">
+      <div class="campo"><label for="f-rotulo">Rótulo (acima do título)</label><input type="text" id="f-rotulo" placeholder="GER034 · Nome do projeto"></div>
+      <div class="campo"><label for="f-titulo">Título</label><input type="text" id="f-titulo" value="Etapas do projeto"></div>
+      <div class="campo"><label for="f-aba">Nome na aba do navegador</label><input type="text" id="f-aba" placeholder="Etapas do GER034"></div>
+      <div class="campo"><label for="f-url">URL do Supabase (Data API)</label><input type="text" id="f-url" placeholder="https://xxxxxxxx.supabase.co" spellcheck="false"></div>
+      <div class="campo largo"><label for="f-chave">Chave publishable do Supabase</label><input type="text" id="f-chave" placeholder="sb_publishable_..." spellcheck="false"></div>
+      <div class="campo largo"><label for="f-descricao">Descrição (texto abaixo do título)</label><textarea id="f-descricao" class="texto" rows="3" placeholder="Para que serve o projeto, em uma ou duas frases."></textarea></div>
+    </div>
+  </section>
+
+  <section class="passo" aria-labelledby="t-crono">
+    <h2 id="t-crono"><span class="n">2</span> Cronograma do MS Project</h2>
+    <p class="ajuda">No MS Project, deixe visíveis as colunas <code>Id</code>, <code>Nível da estrutura de tópicos</code>, <code>Nome da Tarefa</code>, <code>Duração</code>, <code>Início</code>, <code>Término</code>, <code>Predecessoras</code>, <code>Nomes dos recursos</code> e <code>% concluída</code>. Selecione todas as linhas (clique no canto superior esquerdo da tabela), copie com Ctrl+C e cole aqui, com o cabeçalho. Colunas opcionais, acrescentadas no MS Project ou no Excel: <code>Frente</code> e <code>Tipo</code> (Análise, Desenvolvimento ou Validação).</p>
+    <textarea id="f-crono" rows="10" spellcheck="false" placeholder="Id&#9;Nível da estrutura de tópicos&#9;Nome da Tarefa&#9;Duração&#9;Início&#9;Término&#9;Predecessoras&#9;Nomes dos recursos&#9;% concluída"></textarea>
+    <div class="linha-botoes"><button type="button" id="b-exemplo">Carregar o exemplo do GER033</button><span class="status" id="s-exemplo" role="status"></span></div>
+  </section>
+
+  <section class="passo" aria-labelledby="t-itens">
+    <h2 id="t-itens"><span class="n">3</span> Itens de detalhe <span class="opc">opcional</span></h2>
+    <p class="ajuda">Uma linha por item, com cabeçalho: <code>Frente</code> · <code>Tarefa</code> (o Id da tarefa no MS Project, ou o nome dela) · <code>Item</code> · <code>Tipo</code> · <code>Concluído</code> (Sim ou Não). O item fica pendurado na tarefa, e a tarefa só se conclui quando todos os itens dela estiverem marcados.</p>
+    <textarea id="f-itens" rows="6" spellcheck="false" placeholder="Frente&#9;Tarefa&#9;Item&#9;Tipo&#9;Concluído"></textarea>
+  </section>
+
+  <section class="passo" aria-labelledby="t-frentes">
+    <h2 id="t-frentes"><span class="n">4</span> Frentes <span class="opc">opcional</span></h2>
+    <p class="ajuda">Cabeçalho: <code>Frente</code> · <code>Descrição</code> · <code>Por que falta</code>. A ordem das linhas é a ordem no site. Sem este bloco, as frentes vêm da coluna Frente do cronograma e dos itens; se o cronograma não tiver essa coluna, as tarefas são agrupadas pelo responsável.</p>
+    <textarea id="f-frentes" rows="5" spellcheck="false" placeholder="Frente&#9;Descrição&#9;Por que falta"></textarea>
+  </section>
+
+  <div class="linha-botoes"><button type="button" class="primario" id="b-gerar">Gerar</button><span class="status" id="s-gerar" role="status"></span></div>
+
+  <section class="passo resultado" id="resultado" aria-labelledby="t-resultado" hidden>
+    <h2 id="t-resultado">Resultado</h2>
+    <div class="numeros" id="numeros"></div>
+    <ul class="avisos" id="avisos"></ul>
+
+    <h3>Revise as tarefas</h3>
+    <p class="ajuda">Confira fase, tipo, frente e dependências. Tipos com <span class="inferido">*</span> foram deduzidos pelo nome da tarefa; para escolher, acrescente a coluna Tipo no cronograma e gere de novo.</p>
+    <div class="tabela-wrap"><table id="t-tarefas"></table></div>
+
+    <h3>1. schema.sql</h3>
+    <p class="ajuda">Num projeto novo do Supabase, rode primeiro o <code>schema.sql</code> desta mesma pasta (SQL Editor &gt; New query &gt; colar &gt; Run). Ele cria as tabelas, as regras de acesso e o tempo real. Só precisa rodar uma vez.</p>
+
+    <div class="saida">
+      <h3>2. dados.sql</h3>
+      <p class="ajuda">Rode depois do schema.sql, também no SQL Editor.</p>
+      <textarea id="o-dados" readonly spellcheck="false" aria-label="dados.sql gerado"></textarea>
+      <div class="linha-botoes"><button type="button" data-copiar="o-dados">Copiar</button><button type="button" id="b-baixar">Baixar dados.sql</button></div>
+    </div>
+
+    <div class="saida">
+      <h3>3. Configuração do index.html</h3>
+      <p class="ajuda">No <code>index.html</code> do novo site, troque a linha <code>&lt;title&gt;</code> e o bloco <code>window.ETAPAS_CONFIG = { … };</code> por estes.</p>
+      <textarea id="o-config" readonly spellcheck="false" aria-label="Configuração do index.html"></textarea>
+      <div class="linha-botoes"><button type="button" data-copiar="o-config">Copiar</button></div>
+    </div>
+  </section>
+
+  <p class="rodape">Parte do modelo do site de etapas (GER033). O passo a passo completo está no GUIA.md do repositório.</p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var STOP = ['de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'as', 'os', 'com', 'para', 'por', 'em', 'no', 'na', 'nos', 'nas', 'uma', 'um', 'ao', 'vs'];
+  var NOME_TIPO = { analise: 'Análise', desenvolvimento: 'Desenvolvimento', validacao: 'Validação' };
+  var CAMPOS = ['f-rotulo', 'f-titulo', 'f-aba', 'f-url', 'f-chave', 'f-descricao', 'f-crono', 'f-itens', 'f-frentes'];
+
+  // ---------- texto ----------
+  function norm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+  function limpa(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+  function semPonto(s) { return limpa(s).replace(/\.$/, '').trim(); }
+  function palavras(s) { return norm(s).replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter(Boolean); }
+  function pad(n, w) { n = String(n); while (n.length < (w || 2)) n = '0' + n; return n; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  function slug(s, max) {
+    var w = palavras(s).filter(function (p) { return STOP.indexOf(p) < 0; });
+    if (!w.length) w = palavras(s);
+    var out = '';
+    for (var i = 0; i < w.length && i < 3; i++) {
+      var cand = out ? out + '-' + w[i] : w[i];
+      if (cand.length > max && out) break;
+      out = cand.slice(0, max);
+    }
+    return out || 'x';
+  }
+  function unico(base, usados) {
+    var id = base, n = 2;
+    while (usados[id]) id = base + n++;
+    usados[id] = true;
+    return id;
+  }
+  // título curto da fase para os botões de filtro (até ~26 letras, sem terminar em "de", "com"…)
+  function curto(t) {
+    t = limpa(t);
+    if (t.length <= 26) return t;
+    var w = t.split(' '), out = [];
+    for (var i = 0; i < w.length; i++) {
+      if ((out.concat(w[i])).join(' ').length > 26) break;
+      out.push(w[i]);
+    }
+    while (out.length > 1 && STOP.indexOf(norm(out[out.length - 1])) >= 0) out.pop();
+    return out.join(' ').replace(/[,:;]$/, '') || t.slice(0, 26);
+  }
+
+  // ---------- tabelas coladas (tabulação, ponto e vírgula ou vírgula) ----------
+  function dividir(linha, sep) {
+    var out = [], cur = '', aspas = false;
+    for (var i = 0; i < linha.length; i++) {
+      var c = linha[i];
+      if (aspas) {
+        if (c === '"') { if (linha[i + 1] === '"') { cur += '"'; i++; } else aspas = false; }
+        else cur += c;
+      } else if (c === '"' && cur === '') aspas = true;
+      else if (c === sep) { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function (s) { return s.trim(); });
+  }
+  function lerTabela(texto) {
+    var linhas = String(texto || '').replace(/\r\n?/g, '\n').split('\n').filter(function (l) { return l.trim() !== ''; });
+    if (linhas.length < 2) return null;
+    var h = linhas[0];
+    var sep = h.indexOf('\t') >= 0 ? '\t' : (h.indexOf(';') >= 0 ? ';' : ',');
+    return { cab: dividir(h, sep).map(norm), linhas: linhas.slice(1).map(function (l) { return dividir(l, sep); }) };
+  }
+  function coluna(cab, teste) {
+    for (var i = 0; i < cab.length; i++) if (teste(cab[i])) return i;
+    return -1;
+  }
+  function data(s) {
+    s = String(s || '');
+    var m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/), a, me, d;
+    if (m) { d = +m[1]; me = +m[2]; a = m[3].length === 2 ? 2000 + (+m[3]) : +m[3]; }
+    else {
+      m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (!m) return null;
+      a = +m[1]; me = +m[2]; d = +m[3];
+    }
+    if (me < 1 || me > 12 || d < 1 || d > 31) return null;
+    return a + '-' + pad(me) + '-' + pad(d);
+  }
+  function percentual(s) { var n = parseInt(String(s || '').replace(/[^\d]/g, ''), 10); return isNaN(n) ? 0 : n; }
+  function sim(s) { return ['sim', 's', 'x', '1', 'true', 'ok', 'feito', 'concluido', 'concluida', 'yes', 'y', '100', '100%'].indexOf(norm(s)) >= 0; }
+  function responsavel(s) {
+    var p = String(s || '').split(/[;,]/).map(limpa).filter(Boolean);
+    return p.length ? p.join('; ') : null;
+  }
+  function tipoInformado(s) {
+    var n = norm(s);
+    if (!n) return null;
+    if (n.indexOf('anal') === 0) return 'analise';
+    if (n.indexOf('desen') === 0 || n === 'dev') return 'desenvolvimento';
+    if (n.indexOf('valid') === 0 || n.indexOf('test') === 0) return 'validacao';
+    return null;
+  }
+  // tipo deduzido pelo nome: testes e documentação = validação; levantamentos, definições e regras = análise; o resto = desenvolvimento
+  function tipoDeduzido(texto) {
+    var n = norm(texto);
+    if (/(teste|homolog|documenta|treinamento)/.test(n)) return 'validacao';
+    if (/(levantamento|mapeamento|definicao|regras|reuniao|requisito|entendimento|criterio|analise|planejamento|setup|especificacao|desenho)/.test(n)) return 'analise';
+    return 'desenvolvimento';
+  }
+
+  // ---------- conversão ----------
+  function converter(entrada) {
+    var avisos = [];
+    function aviso(texto, nivel) { avisos.push({ texto: texto, nivel: nivel || 'aviso' }); }
+
+    var T = lerTabela(entrada.crono);
+    if (!T) return { erro: 'Cole o cronograma com a linha de cabeçalho e pelo menos uma tarefa.' };
+    var c = {
+      id: coluna(T.cab, function (h) { return h === 'id' || h === 'n' || h === 'no' || h.indexOf('identifica') === 0; }),
+      nivel: coluna(T.cab, function (h) { return h.indexOf('nivel') >= 0 || h.indexOf('outline') >= 0; }),
+      resumo: coluna(T.cab, function (h) { return h === 'resumo' || h === 'summary'; }),
+      nome: coluna(T.cab, function (h) { return h === 'nome' || h.indexOf('nome da tarefa') >= 0 || h === 'tarefa' || h === 'task name' || h === 'name'; }),
+      duracao: coluna(T.cab, function (h) { return h.indexOf('duracao') >= 0 || h === 'duration'; }),
+      inicio: coluna(T.cab, function (h) { return h.indexOf('inicio') === 0 || h === 'start'; }),
+      fim: coluna(T.cab, function (h) { return h.indexOf('termino') === 0 || h === 'fim' || h === 'finish'; }),
+      pred: coluna(T.cab, function (h) { return h.indexOf('predecess') >= 0; }),
+      recursos: coluna(T.cab, function (h) { return h.indexOf('recurso') >= 0 || h.indexOf('responsa') >= 0 || h.indexOf('resource') >= 0; }),
+      pct: coluna(T.cab, function (h) { return h.indexOf('conclu') >= 0 || h.indexOf('complete') >= 0; }),
+      tipo: coluna(T.cab, function (h) { return h === 'tipo' || h === 'type'; }),
+      frente: coluna(T.cab, function (h) { return h.indexOf('frente') >= 0; })
+    };
+    if (c.nome < 0) return { erro: 'Não encontrei a coluna "Nome da Tarefa" no cabeçalho do cronograma.' };
+    if (c.nivel < 0 && c.resumo < 0) return { erro: 'Falta a coluna "Nível da estrutura de tópicos". No MS Project, clique com o botão direito no cabeçalho da tabela > Inserir coluna > Nível da estrutura de tópicos, e copie de novo.' };
+    if (c.id < 0) aviso('Sem a coluna Id: usei a posição de cada linha como Id. Se as predecessoras não baterem, inclua a coluna Id e gere de novo.');
+    if (c.pred < 0) aviso('Sem a coluna Predecessoras: nenhuma dependência foi criada, então nenhuma tarefa vai aparecer como "Aguardando".');
+    if (c.inicio < 0 || c.fim < 0) aviso('Sem as colunas Início e Término: as tarefas ficam sem datas e o site não consegue calcular atrasos.');
+
+    var linhas = [];
+    T.linhas.forEach(function (v, i) {
+      function col(k) { return c[k] >= 0 ? (v[c[k]] || '') : ''; }
+      var nome = semPonto(col('nome'));
+      if (!nome) return;
+      var msId = c.id >= 0 ? parseInt(col('id'), 10) : i + 1;
+      if (isNaN(msId)) msId = i + 1;
+      linhas.push({
+        msId: msId,
+        nivel: c.nivel >= 0 ? parseInt(col('nivel'), 10) : null,
+        resumo: c.resumo >= 0 ? sim(col('resumo')) : false,
+        nome: nome,
+        duracao: limpa(col('duracao')) || null,
+        inicio: data(col('inicio')),
+        fim: data(col('fim')),
+        pred: col('pred'),
+        recursos: col('recursos'),
+        pct: percentual(col('pct')),
+        tipo: col('tipo'),
+        frente: limpa(col('frente'))
+      });
+    });
+    if (!linhas.length) return { erro: 'Nenhuma linha com nome de tarefa no cronograma.' };
+
+    // papel de cada linha: projeto, fase, agrupador (dentro da fase) ou tarefa
+    var semFases = false;
+    if (c.nivel >= 0) {
+      var maior = 1;
+      linhas.forEach(function (r) { if (!isNaN(r.nivel) && r.nivel > maior) maior = r.nivel; });
+      linhas.forEach(function (r) {
+        if (isNaN(r.nivel) || r.nivel === null) { r.nivel = maior; aviso('A linha "' + r.nome + '" está sem nível; tratei como tarefa.'); }
+      });
+      var min = Math.min.apply(null, linhas.map(function (r) { return r.nivel; }));
+      var noMin = linhas.filter(function (r) { return r.nivel === min; });
+      var nivelFase = (noMin.length === 1 && linhas[0].nivel === min && linhas.length > 1) ? min + 1 : min;
+      semFases = !linhas.some(function (r) { return r.nivel > nivelFase; });
+      linhas.forEach(function (r, i) {
+        var prox = linhas[i + 1];
+        if (r.nivel < nivelFase) r.papel = 'projeto';
+        else if (semFases) r.papel = 'tarefa';
+        else if (r.nivel === nivelFase) r.papel = 'fase';
+        else r.papel = (prox && prox.nivel > r.nivel) ? 'agrupador' : 'tarefa';
+      });
+    } else {
+      linhas.forEach(function (r) { r.papel = r.resumo ? 'fase' : 'tarefa'; });
+      if (linhas.length > 1 && linhas[0].resumo && linhas[1].resumo) linhas[0].papel = 'projeto';
+      semFases = !linhas.some(function (r) { return r.papel === 'fase'; });
+    }
+
+    // fases e tarefas
+    var usadosF = {}, fases = [], tarefas = [], porMsId = {};
+    function novaFase(r, titulo) {
+      var base = (palavras(titulo).filter(function (p) { return STOP.indexOf(p) < 0; })[0] || 'fase').slice(0, 3);
+      var f = { id: unico(base, usadosF), ordem: fases.length + 1, titulo: titulo, titulo_curto: curto(titulo), inicio: r ? r.inicio : null, fim: r ? r.fim : null, tarefas: [], linha: r };
+      fases.push(f);
+      return f;
+    }
+    var projeto = linhas.filter(function (r) { return r.papel === 'projeto'; })[0] || null;
+    var faseAtual = null;
+    if (semFases) {
+      faseAtual = novaFase(projeto, projeto ? projeto.nome : 'Cronograma');
+      aviso('O cronograma não tem fases (só um nível de tarefas abaixo do projeto): todas as tarefas ficaram numa fase só, "' + faseAtual.titulo + '".', 'info');
+    }
+    linhas.forEach(function (r) {
+      if (porMsId[r.msId]) aviso('O Id ' + r.msId + ' aparece mais de uma vez no cronograma.');
+      porMsId[r.msId] = r;
+      if (r.papel === 'projeto') return;
+      if (r.papel === 'fase') { faseAtual = novaFase(r, r.nome); r.fase = faseAtual; return; }
+      if (!faseAtual) faseAtual = novaFase(null, 'Outras tarefas');
+      r.fase = faseAtual;
+      if (r.papel === 'agrupador') return;   // só os filhos dele viram tarefas
+      var tInf = tipoInformado(r.tipo);
+      var t = {
+        id: faseAtual.id + '-' + pad(faseAtual.tarefas.length + 1),
+        fase_id: faseAtual.id,
+        ordem: faseAtual.tarefas.length + 1,
+        texto: r.nome,
+        duracao: r.duracao,
+        inicio: r.inicio,
+        fim: r.fim,
+        responsavel: responsavel(r.recursos),
+        tipo: tInf || tipoDeduzido(r.nome),
+        tipoDeduzido: !tInf,
+        frenteTitulo: r.frente,
+        feito: r.pct >= 100,
+        em_andamento: r.pct > 0 && r.pct < 100,
+        msId: r.msId,
+        predTexto: r.pred,
+        itens: 0
+      };
+      faseAtual.tarefas.push(t);
+      tarefas.push(t);
+      r.tarefa = t;
+    });
+    fases.forEach(function (f) {
+      if (!f.tarefas.length) aviso('A fase "' + f.titulo + '" não tem tarefas e não vai aparecer no site.');
+      if (!f.inicio) f.inicio = f.tarefas.map(function (t) { return t.inicio; }).filter(Boolean).sort()[0] || null;
+      if (!f.fim) f.fim = f.tarefas.map(function (t) { return t.fim; }).filter(Boolean).sort().slice(-1)[0] || null;
+    });
+
+    // predecessoras: Id de tarefa -> a tarefa; Id de fase ou agrupador -> todas as tarefas abaixo dele
+    function tarefasDe(r) {
+      if (r.tarefa) return [r.tarefa.id];
+      if (r.papel === 'projeto') return [];
+      if (r.papel === 'fase' && r.fase) return r.fase.tarefas.map(function (t) { return t.id; });
+      var i = linhas.indexOf(r), out = [];
+      for (var j = i + 1; j < linhas.length; j++) {
+        if (linhas[j].nivel <= r.nivel) break;
+        if (linhas[j].tarefa) out.push(linhas[j].tarefa.id);
+      }
+      return out;
+    }
+    var ajustes = false;
+    tarefas.forEach(function (t) {
+      var deps = [];
+      String(t.predTexto || '').split(/[;,]/).forEach(function (p) {
+        var m = p.match(/^\s*(\d+)(.*)$/);
+        if (!m) return;
+        if (limpa(m[2])) ajustes = true;
+        var ref = porMsId[parseInt(m[1], 10)];
+        if (!ref) { aviso('"' + t.texto + '" depende do Id ' + m[1] + ', que não está no cronograma colado.'); return; }
+        tarefasDe(ref).forEach(function (id) { if (id !== t.id && deps.indexOf(id) < 0) deps.push(id); });
+      });
+      t.depende_de = deps;
+    });
+    if (ajustes) aviso('Algumas predecessoras têm tipo ou espera (ex.: "5TI+2 dias"). O site considera só "depende de"; tipos e esperas foram ignorados.', 'info');
+
+    // frentes
+    var frentes = [], porTitulo = {}, usadosG = {};
+    function frente(titulo) {
+      var chave = norm(titulo);
+      if (porTitulo[chave]) return porTitulo[chave];
+      var g = { id: unico(slug(titulo, 24), usadosG), titulo: titulo, descricao: null, nota: null };
+      porTitulo[chave] = g;
+      frentes.push(g);
+      return g;
+    }
+    var TF = lerTabela(entrada.frentes);
+    if (TF) {
+      var cF = coluna(TF.cab, function (h) { return h.indexOf('frente') >= 0 || h === 'titulo' || h === 'nome'; });
+      var cD = coluna(TF.cab, function (h) { return h.indexOf('descri') >= 0; });
+      var cN = coluna(TF.cab, function (h) { return h.indexOf('falta') >= 0 || h === 'nota'; });
+      if (cF < 0) aviso('No bloco de frentes falta a coluna "Frente"; o bloco foi ignorado.', 'erro');
+      else TF.linhas.forEach(function (v) {
+        var titulo = limpa(v[cF]);
+        if (!titulo) return;
+        var g = frente(titulo);
+        g.descricao = cD >= 0 ? (limpa(v[cD]) || null) : null;
+        g.nota = cN >= 0 ? (limpa(v[cN]) || null) : null;
+      });
+    }
+    var temColunaFrente = c.frente >= 0 && tarefas.some(function (t) { return t.frenteTitulo; });
+    if (!temColunaFrente) aviso('O cronograma não tem a coluna Frente: as tarefas foram agrupadas por responsável na aba "Frentes de trabalho". Para escolher as frentes, acrescente essa coluna e gere de novo.', 'info');
+    tarefas.forEach(function (t) {
+      var titulo = temColunaFrente ? t.frenteTitulo : (t.responsavel || 'Sem responsável definido');
+      t.grupo_id = titulo ? frente(titulo).id : null;
+      t.frente = titulo || '';
+    });
+
+    // itens de detalhe
+    var itens = [];
+    var TI = lerTabela(entrada.itens);
+    if (TI) {
+      var iF = coluna(TI.cab, function (h) { return h.indexOf('frente') >= 0; });
+      var iT = coluna(TI.cab, function (h) { return h.indexOf('tarefa') >= 0 || h === 'id'; });
+      var iI = coluna(TI.cab, function (h) { return h === 'item' || h.indexOf('texto') >= 0 || h.indexOf('descri') >= 0; });
+      var iY = coluna(TI.cab, function (h) { return h === 'tipo' || h === 'type'; });
+      var iC = coluna(TI.cab, function (h) { return h.indexOf('conclu') >= 0 || h.indexOf('feito') >= 0; });
+      if (iI < 0) aviso('No bloco de itens falta a coluna "Item"; o bloco foi ignorado.', 'erro');
+      else {
+        var porFrente = {};
+        TI.linhas.forEach(function (v) {
+          var texto = semPonto(v[iI]);
+          if (!texto) return;
+          var g = frente(limpa(iF >= 0 ? v[iF] : '') || 'Sem frente definida');
+          var ref = iT >= 0 ? semPonto(v[iT]) : '';
+          var t = null;
+          if (/^\d+$/.test(ref)) {
+            var r = porMsId[parseInt(ref, 10)];
+            if (r && r.tarefa) t = r.tarefa;
+            else aviso('O item "' + texto + '" aponta para o Id ' + ref + ', que não é uma tarefa do cronograma (é fase, agrupador ou não existe). Ele aparece só na aba Frentes.');
+          } else if (ref) {
+            var cands = tarefas.filter(function (x) { return norm(x.texto) === norm(ref); });
+            if (cands.length) {
+              t = cands[0];
+              if (cands.length > 1) aviso('O nome "' + ref + '" aparece em ' + cands.length + ' tarefas; o item "' + texto + '" ficou na primeira (' + t.id + '). Use o Id para escolher outra.');
+            } else aviso('Não achei a tarefa "' + ref + '" do item "' + texto + '". Ele aparece só na aba Frentes.');
+          } else aviso('O item "' + texto + '" não diz a tarefa. Ele aparece só na aba Frentes.');
+          porFrente[g.id] = (porFrente[g.id] || 0) + 1;
+          var yInf = tipoInformado(iY >= 0 ? v[iY] : '');
+          if (t) t.itens++;
+          itens.push({
+            id: 'i-' + pad(itens.length + 1, 3),
+            grupo_id: g.id,
+            frente: g.titulo,
+            tarefa_id: t ? t.id : null,
+            ordem: porFrente[g.id],
+            texto: texto,
+            tipo: yInf || tipoDeduzido(texto),
+            tipoDeduzido: !yInf,
+            feito: iC >= 0 ? sim(v[iC]) : false
+          });
+        });
+      }
+    }
+    frentes.forEach(function (g, i) { g.ordem = i + 1; });
+
+    var marcos = tarefas.filter(function (t) { return /^0\s/.test(t.duracao || ''); }).length;
+    if (marcos) aviso(marcos + (marcos > 1 ? ' tarefas têm' : ' tarefa tem') + ' 0 dias (marcos do MS Project). No site elas contam como tarefas normais.', 'info');
+    var deduzidos = tarefas.filter(function (t) { return t.tipoDeduzido; }).length + itens.filter(function (x) { return x.tipoDeduzido; }).length;
+    if (deduzidos) aviso(deduzidos + ' tipos foram deduzidos pelo nome (marcados com * na tabela). Confira se fazem sentido.', 'info');
+
+    var folhas = itens.length + tarefas.filter(function (t) { return !t.itens; }).length;
+    return { fases: fases, tarefas: tarefas, itens: itens, frentes: frentes, folhas: folhas, avisos: avisos };
+  }
+
+  // ---------- saída ----------
+  function q(v) {
+    if (v === null || v === undefined || v === '') return 'null';
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    if (typeof v === 'number') return String(v);
+    return "'" + String(v).replace(/'/g, "''") + "'";
+  }
+  function lista(a) { return "'{" + (a || []).join(',') + "}'"; }
+  function insert(tabela, colunas, linhas) {
+    if (!linhas.length) return '-- (nada para ' + tabela + ')\n';
+    return 'insert into public.' + tabela + ' (' + colunas.join(', ') + ') values\n' +
+      linhas.map(function (l) { return '  (' + l.join(', ') + ')'; }).join(',\n') +
+      '\non conflict (id) do nothing;\n';
+  }
+  function gerarSql(r, rotulo) {
+    var agora = new Date().toLocaleString('pt-BR');
+    return [
+      '-- =====================================================================',
+      '-- Dados do projeto ' + (rotulo || '') + ' — gerado pelo gerador do site de etapas em ' + agora,
+      '-- ' + r.fases.length + ' fases, ' + r.tarefas.length + ' tarefas, ' + r.itens.length + ' itens, ' + r.frentes.length + ' frentes (' + r.folhas + ' itens que se marcam no site).',
+      '-- Rode DEPOIS do schema.sql, no SQL Editor do Supabase.',
+      '-- Rodar de novo não duplica nada: o que já existe (mesmo id) é mantido como está.',
+      '-- Para recarregar do zero, tire os dois tracinhos da linha abaixo antes de rodar:',
+      '-- delete from public.etapas_itens; delete from public.cronograma_tarefas; delete from public.etapas_grupos; delete from public.etapas_fases;',
+      '-- =====================================================================',
+      '',
+      insert('etapas_fases', ['id', 'ordem', 'titulo', 'titulo_curto', 'inicio', 'fim'],
+        r.fases.map(function (f) { return [q(f.id), f.ordem, q(f.titulo), q(f.titulo_curto), q(f.inicio), q(f.fim)]; })),
+      insert('etapas_grupos', ['id', 'ordem', 'titulo', 'descricao', 'nota'],
+        r.frentes.map(function (g) { return [q(g.id), g.ordem, q(g.titulo), q(g.descricao), q(g.nota)]; })),
+      insert('cronograma_tarefas', ['id', 'fase_id', 'grupo_id', 'ordem', 'texto', 'duracao', 'inicio', 'fim', 'responsavel', 'tipo', 'depende_de', 'feito', 'em_andamento'],
+        r.tarefas.map(function (t) { return [q(t.id), q(t.fase_id), q(t.grupo_id), t.ordem, q(t.texto), q(t.duracao), q(t.inicio), q(t.fim), q(t.responsavel), q(t.tipo), lista(t.depende_de), q(t.feito), q(t.em_andamento)]; })),
+      insert('etapas_itens', ['id', 'grupo_id', 'tarefa_id', 'ordem', 'texto', 'tipo', 'feito'],
+        r.itens.map(function (x) { return [q(x.id), q(x.grupo_id), q(x.tarefa_id), x.ordem, q(x.texto), q(x.tipo), q(x.feito)]; }))
+    ].join('\n');
+  }
+  function js(s) { return JSON.stringify(String(s || '')).replace(/</g, '\\u003c'); }
+  function gerarConfig(p) {
+    return [
+      '<title>' + esc(p.aba || p.titulo || 'Etapas do projeto') + '</title>',
+      '',
+      '  window.ETAPAS_CONFIG = {',
+      '    url: ' + js(p.url) + ',',
+      '    chave: ' + js(p.chave) + ',',
+      '    projeto: {',
+      '      aba: ' + js(p.aba || p.titulo) + ',',
+      '      rotulo: ' + js(p.rotulo) + ',',
+      '      titulo: ' + js(p.titulo || 'Etapas do projeto') + ',',
+      '      descricao: ' + js(p.descricao),
+      '    }',
+      '  };'
+    ].join('\n');
+  }
+
+  // ---------- tela ----------
+  function lerProjeto(avisos) {
+    var url = limpa($('f-url').value).replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+    var chave = limpa($('f-chave').value);
+    if (!url || !chave) avisos.push({ nivel: 'aviso', texto: 'Sem a URL ou a chave do Supabase, o site novo abre com o aviso "Falta configurar o Supabase". Dá para preencher depois no index.html.' });
+    else if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) avisos.push({ nivel: 'aviso', texto: 'A URL do Supabase não parece estar no formato https://xxxx.supabase.co. Confira em Project Settings > Data API.' });
+    if (/^sb_secret_/i.test(chave) || /service_role/i.test(chave)) avisos.push({ nivel: 'erro', texto: 'Essa parece ser a chave SECRETA do Supabase. Nunca coloque essa chave no site: use a chave publishable (sb_publishable_...).' });
+    return { url: url, chave: chave, rotulo: limpa($('f-rotulo').value), titulo: limpa($('f-titulo').value), aba: limpa($('f-aba').value), descricao: limpa($('f-descricao').value) };
+  }
+
+  function mostrar(r, p) {
+    var avisos = r.avisos;
+    $('numeros').innerHTML =
+      '<span><strong>' + r.fases.length + '</strong>fases</span>' +
+      '<span><strong>' + r.tarefas.length + '</strong>tarefas</span>' +
+      '<span><strong>' + r.itens.length + '</strong>itens de detalhe</span>' +
+      '<span><strong>' + r.frentes.length + '</strong>frentes</span>' +
+      '<span><strong>' + r.folhas + '</strong>itens que se marcam no site</span>';
+    $('avisos').innerHTML = avisos.map(function (a) { return '<li class="' + a.nivel + '">' + esc(a.texto) + '</li>'; }).join('');
+
+    var h = '<thead><tr><th>Id MS</th><th>Código</th><th>Tarefa</th><th>Tipo</th><th>Frente</th><th>Responsável</th><th>Período</th><th>Depende de</th><th>Itens</th><th>Concluída</th></tr></thead><tbody>';
+    r.fases.forEach(function (f) {
+      h += '<tr class="fase"><td class="mono">' + esc(f.linha ? f.linha.msId : '') + '</td><td class="mono">' + esc(f.id) + '</td><td colspan="8">' + esc(f.titulo) + ' · ' + esc(f.inicio || '?') + ' a ' + esc(f.fim || '?') + ' · filtro: "' + esc(f.titulo_curto) + '"</td></tr>';
+      f.tarefas.forEach(function (t) {
+        h += '<tr><td class="mono">' + esc(t.msId) + '</td><td class="mono">' + esc(t.id) + '</td><td>' + esc(t.texto) + '</td>' +
+          '<td>' + esc(NOME_TIPO[t.tipo]) + (t.tipoDeduzido ? ' <span class="inferido" title="Deduzido pelo nome">*</span>' : '') + '</td>' +
+          '<td>' + esc(t.frente) + '</td><td>' + esc(t.responsavel || '') + '</td>' +
+          '<td class="mono">' + esc((t.inicio || '') + (t.fim && t.fim !== t.inicio ? ' a ' + t.fim : '')) + '</td>' +
+          '<td class="mono">' + esc(t.depende_de.join(', ')) + '</td><td class="mono">' + (t.itens || '') + '</td><td>' + (t.feito ? 'Sim' : (t.em_andamento ? 'Em andamento' : '')) + '</td></tr>';
+      });
+    });
+    $('t-tarefas').innerHTML = h + '</tbody>';
+
+    $('o-dados').value = gerarSql(r, p.rotulo || p.aba);
+    $('o-config').value = gerarConfig(p);
+    $('resultado').hidden = false;
+  }
+
+  function gerar() {
+    var st = $('s-gerar');
+    var r = converter({ crono: $('f-crono').value, itens: $('f-itens').value, frentes: $('f-frentes').value });
+    if (r.erro) { st.textContent = r.erro; st.className = 'status erro'; $('resultado').hidden = true; return; }
+    var p = lerProjeto(r.avisos);
+    window.__gerado = r;   // para conferência
+    mostrar(r, p);
+    st.textContent = 'Pronto. Revise as tarefas e copie os arquivos abaixo.';
+    st.className = 'status';
+    $('resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copiar(id, botao) {
+    var el = $(id);
+    function ok() { botao.textContent = 'Copiado'; setTimeout(function () { botao.textContent = 'Copiar'; }, 1500); }
+    function alternativa() { el.focus(); el.select(); try { document.execCommand('copy'); ok(); } catch (e) { botao.textContent = 'Selecionado: use Ctrl+C'; } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(el.value).then(ok, alternativa);
+    else alternativa();
+  }
+  function baixar(nome, texto) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([texto], { type: 'text/plain;charset=utf-8' }));
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function carregarExemplo() {
+    var st = $('s-exemplo');
+    st.textContent = 'Carregando…';
+    Promise.all(['exemplo-cronograma-ger033.txt', 'exemplo-itens-ger033.txt', 'exemplo-frentes-ger033.txt'].map(function (arq) {
+      return fetch(arq, { cache: 'no-store' }).then(function (resp) { if (!resp.ok) throw new Error(arq); return resp.text(); });
+    })).then(function (t) {
+      $('f-crono').value = t[0];
+      $('f-itens').value = t[1];
+      $('f-frentes').value = t[2];
+      if (!$('f-rotulo').value) $('f-rotulo').value = 'GER033 · Analista Virtual do Mapa Diário';
+      if (!$('f-aba').value) $('f-aba').value = 'Etapas do GER033';
+      if (!$('f-descricao').value) $('f-descricao').value = 'O projeto nasceu como um agente de IA para conferir o Mapa Diário. Essa conferência já foi feita internamente e está em produção, e o projeto foi atualizado para que o agente de IA atue nas explicações e nos laudos sobre os dados do mapa.';
+      salvarCampos();
+      st.textContent = 'Exemplo carregado. Clique em Gerar.';
+    }).catch(function () {
+      st.textContent = 'O exemplo só carrega pela página publicada no GitHub Pages. Aberto direto do disco, abra os arquivos exemplo-*.txt desta pasta e cole o conteúdo.';
+    });
+  }
+
+  // os campos ficam guardados no navegador, para não perder o que foi colado
+  function salvarCampos() {
+    try {
+      var o = {};
+      CAMPOS.forEach(function (id) { o[id] = $(id).value; });
+      localStorage.setItem('gerador-etapas', JSON.stringify(o));
+    } catch (e) {}
+  }
+  function restaurarCampos() {
+    try {
+      var o = JSON.parse(localStorage.getItem('gerador-etapas') || 'null');
+      if (o) CAMPOS.forEach(function (id) { if (typeof o[id] === 'string' && o[id] !== '') $(id).value = o[id]; });
+    } catch (e) {}
+  }
+
+  var tempo = null;
+  document.addEventListener('input', function () { clearTimeout(tempo); tempo = setTimeout(salvarCampos, 400); });
+  $('b-gerar').addEventListener('click', gerar);
+  $('b-exemplo').addEventListener('click', carregarExemplo);
+  $('b-baixar').addEventListener('click', function () { baixar('dados.sql', $('o-dados').value); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-copiar]');
+    if (b) copiar(b.getAttribute('data-copiar'), b);
+  });
+  restaurarCampos();
+})();
+</script>
+</body>
+</html>

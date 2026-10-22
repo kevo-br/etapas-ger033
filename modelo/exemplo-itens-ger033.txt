@@ -1,0 +1,25 @@
+Frente	Tarefa	Item	Tipo	Concluído
+Base de dados do mapa	4	Tabelas com os números da página principal do mapa, por dia e totais do mês	Desenvolvimento	Sim
+Base de dados do mapa	4	Procedure e rotina de carga diária	Desenvolvimento	Sim
+Base de dados do mapa	7	Regras e queries de validação	Análise	Sim
+Conferência diária automática	7	Roda toda madrugada, logo depois da carga do mapa	Desenvolvimento	Sim
+Conferência diária automática	7	Confere carteira, entrada de pedidos, faturamento, pronto e programados, estoques, prazo e preço médio e alterações retroativas	Desenvolvimento	Sim
+Conferência diária automática	7	Envia o resultado completo em um único e-mail	Desenvolvimento	Sim
+E-mail organizado e explicado	7	Blocos agrupados em seções por assunto	Desenvolvimento	Sim
+E-mail organizado e explicado	7	Cada bloco tem um texto explicando o que valida e de onde vem o dado	Desenvolvimento	Sim
+E-mail organizado e explicado	7	Regras mostradas em formato de fórmula, com a conta aberta	Desenvolvimento	Sim
+Limites de variação em tabela	7	Tolerância de cada validação cadastrada na MPD_CONF_DIA_VARIACAO	Desenvolvimento	Sim
+Limites de variação em tabela	7	Ajuste sem mexer no código; validações sem limite aparecem como informativas	Desenvolvimento	Sim
+Incluir as conferências do Tiago no e-mail	7	Validações do Tiago incluídas no e-mail	Desenvolvimento	Não
+Incluir as conferências do Tiago no e-mail	14	Documento de regras e contextos atualizado com as novas validações	Validação	Não
+Registrar alertas e erros para a mensageria	13	Tabela de ocorrências gravada pela conferência	Desenvolvimento	Não
+Registrar alertas e erros para a mensageria	13	Log das alterações de limite: quem mudou, quando e por quê	Desenvolvimento	Não
+Registrar alertas e erros para a mensageria	13	Mensageria lendo as ocorrências e avisando pelo WhatsApp	Desenvolvimento	Não
+Criar a página APEX	14	Página espelhando o conteúdo do e-mail	Desenvolvimento	Não
+Criar a tabela detalhada para o agente de IA	16	Tabela com mais detalhes das informações do mapa	Desenvolvimento	Não
+Criar a tabela detalhada para o agente de IA	16	View da tabela nova, como as que já existem	Desenvolvimento	Não
+Paipe: agente de IA	9	Views de exposição sobre as tabelas atuais do mapa	Desenvolvimento	Sim
+Paipe: agente de IA	9	Acesso da Paipe à nossa base liberado	Desenvolvimento	Sim
+Paipe: agente de IA	18	Conferência dos números do mapa pela Paipe, com apoio nas fórmulas	Validação	Não
+Paipe: agente de IA	19	Explicação dos movimentos e justificativa dos números	Desenvolvimento	Não
+Paipe: agente de IA	26	Geração dos laudos	Desenvolvimento	Não
