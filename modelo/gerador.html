@@ -286,7 +286,8 @@ tr.fase td { background: var(--accent-soft); font-weight: 600; }
     var T = lerTabela(entrada.crono);
     if (!T) return { erro: 'Cole o cronograma com a linha de cabeçalho e pelo menos uma tarefa.' };
     var c = {
-      id: coluna(T.cab, function (h) { return h === 'id' || h === 'n' || h === 'no' || h.indexOf('identifica') === 0; }),
+      // "Id" é o número da linha, que as predecessoras usam (não confundir com "Identificação exclusiva")
+      id: coluna(T.cab, function (h) { return h === 'id' || h === 'n' || h === 'no'; }),
       nivel: coluna(T.cab, function (h) { return h.indexOf('nivel') >= 0 || h.indexOf('outline') >= 0; }),
       resumo: coluna(T.cab, function (h) { return h === 'resumo' || h === 'summary'; }),
       nome: coluna(T.cab, function (h) { return h === 'nome' || h.indexOf('nome da tarefa') >= 0 || h === 'tarefa' || h === 'task name' || h === 'name'; }),
@@ -299,6 +300,7 @@ tr.fase td { background: var(--accent-soft); font-weight: 600; }
       tipo: coluna(T.cab, function (h) { return h === 'tipo' || h === 'type'; }),
       frente: coluna(T.cab, function (h) { return h.indexOf('frente') >= 0; })
     };
+    if (c.id < 0) c.id = coluna(T.cab, function (h) { return h.indexOf('identifica') === 0 && h.indexOf('exclusiv') < 0 && h.indexOf('unic') < 0; });
     if (c.nome < 0) return { erro: 'Não encontrei a coluna "Nome da Tarefa" no cabeçalho do cronograma.' };
     if (c.nivel < 0 && c.resumo < 0) return { erro: 'Falta a coluna "Nível da estrutura de tópicos". No MS Project, clique com o botão direito no cabeçalho da tabela > Inserir coluna > Nível da estrutura de tópicos, e copie de novo.' };
     if (c.id < 0) aviso('Sem a coluna Id: usei a posição de cada linha como Id. Se as predecessoras não baterem, inclua a coluna Id e gere de novo.');
