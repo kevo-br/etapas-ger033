@@ -369,6 +369,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         '<div class="abas" role="tablist" aria-label="Visão">' +
         '<button type="button" role="tab" data-aba="frentes" data-foco="t-frentes">Frentes de trabalho</button>' +
         '<button type="button" role="tab" data-aba="cronograma" data-foco="t-cronograma">Cronograma</button>' +
+        (temTipos ? '<button type="button" role="tab" data-aba="tipos" data-foco="t-tipos">Por tipo</button>' : '') +
         '</div>' +
         '<div class="fases" role="group" aria-label="Fase do cronograma"><span class="rotulo">Fase</span>' +
         '<button type="button" data-fase="todas" data-foco="p-todas">Todas</button>' +
@@ -461,6 +462,52 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       '</div></li>';
   }
 
+  // ---- aba Por tipo ----
+  var DESC_TIPOS = {
+    analise: 'Levantamentos de requisitos, definições, regras e critérios.',
+    desenvolvimento: 'Construção: tabelas, rotinas, e-mail, telas, alertas e o agente da Paipe.',
+    validacao: 'Testes internos, validação com usuários e documentação de cada fase.'
+  };
+  function folhasDoTipo(k) {
+    return folhas.filter(function (x) { return x.tipo === k && (ui.fase === 'todas' || faseDe(x) === ui.fase); });
+  }
+  function cartaoTipo(k, travar, dia) {
+    var lista = folhasDoTipo(k);
+    if (!lista.length) return '';
+    var s = situacao(lista);
+    if (!grupoPassa(s)) return '';
+    var chave = 't:' + k;
+    var ab = aberto(chave, lista);
+    var frentesPorId = {};
+    grupos.forEach(function (g) { frentesPorId[g.id] = g.titulo; });
+    var visiveis = lista.filter(passaFiltro).sort(function (a, b) {
+      var da = inicioDe(a) || '9999', db = inicioDe(b) || '9999';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+    return '<li class="grupo ' + s.cls + (travar ? ' travado' : '') + '">' +
+      '<div class="linha">' +
+      '<button type="button" class="caret" data-abrir="' + chave + '" data-foco="c-' + chave + '" aria-expanded="' + ab + '" aria-controls="corpo-' + chave + '" aria-label="' + (ab ? 'Recolher ' : 'Expandir ') + TIPOS[k] + '">' + CHEVRON + '</button>' +
+      '<input type="checkbox" id="tb-' + k + '" data-tipobox="' + k + '" data-foco="tb-' + k + '"' + (s.f === s.n ? ' checked' : '') + (s.f > 0 && s.f < s.n ? ' data-meio="1"' : '') + (travar ? ' disabled' : '') + '>' +
+      '<label for="tb-' + k + '" class="titulo">' + TIPOS[k] + '</label>' +
+      '<span class="peso" title="Quanto este tipo vale no projeto">' + pctTotal(lista.length) + '</span>' +
+      '<span class="conta">' + s.f + '/' + s.n + '</span>' +
+      cabecalhoStatus(s, contarAtrasadas(lista, dia)) +
+      '</div>' +
+      '<div class="corpo" id="corpo-' + chave + '"' + (ab ? '' : ' hidden') + '>' +
+      '<p class="valefase">Vale <strong>' + pctTotal(lista.length) + '</strong> do projeto · <strong>' + pctTotal(s.f) + '</strong> já concluído.</p>' +
+      '<p class="desc">' + esc(DESC_TIPOS[k]) + '</p>' +
+      '<ul class="itens">' + visiveis.map(function (x) {
+        var meta = [
+          esc(tituloCurto(acharFase(faseDe(x)))),
+          esc(periodo(inicioDe(x), fimDe(x))),
+          esc(frentesPorId[x.grupo_id] || ''),
+          x._k === 'tarefa' ? esc(x.responsavel || '') : (x.tarefa ? 'em: ' + esc(x.tarefa.texto) : '')
+        ].concat(tagsEstado(x, dia));
+        return folhaHtml(x, meta, travar);
+      }).join('') + '</ul>' +
+      '</div></li>';
+  }
+
   // ---- aba Cronograma ----
   function tarefaHtml(t, travar, dia) {
     var metaT = [esc(periodo(t.inicio, t.fim)), esc(t.duracao || ''), esc(t.responsavel || ''), esc(TIPOS[t.tipo] || '')];
@@ -533,6 +580,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     if (!temCronograma) { ui.aba = 'frentes'; ui.fase = 'todas'; }
     if (ui.fase !== 'todas' && !acharFase(ui.fase)) ui.fase = 'todas';
     if (!temTipos || (ui.tipo !== 'todos' && !TIPOS[ui.tipo])) ui.tipo = 'todos';
+    if (ui.aba === 'tipos' && !temTipos) ui.aba = 'frentes';
 
     var ativo = document.activeElement;
     var foco = ativo && ativo.getAttribute ? ativo.getAttribute('data-foco') : null;
@@ -584,6 +632,10 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       var visiveis = ui.fase === 'todas' ? fases : fases.filter(function (f) { return f.id === ui.fase; });
       var cardsF = visiveis.map(function (f) { return cartaoFase(f, travar, dia); }).join('');
       h = cardsF ? '<ul class="arvore">' + cardsF + '</ul>' : '<p class="vazio">Nenhum item com esse filtro.</p>';
+    } else if (ui.aba === 'tipos') {
+      var cardsT = Object.keys(TIPOS).filter(function (k) { return ui.tipo === 'todos' || k === ui.tipo; })
+        .map(function (k) { return cartaoTipo(k, travar, dia); }).join('');
+      h = cardsT ? '<ul class="arvore">' + cardsT + '</ul>' : '<p class="vazio">Nenhum item com esse filtro.</p>';
     } else {
       var cardsG = grupos.map(function (g) { return cartaoFrente(g, travar, dia); }).join('');
       h = cardsG ? '<ul class="arvore">' + cardsG + '</ul>' : '<p class="vazio">Nenhum item com esse filtro.</p>';
@@ -761,6 +813,8 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         f.tarefas.forEach(function (x) { l = l.concat(unificado ? folhasDaTarefa(x) : [x]); });
         marcar(l.filter(passaTipo), v);
       }
+    } else if (t.hasAttribute('data-tipobox')) {
+      marcar(folhasDoTipo(t.getAttribute('data-tipobox')), v);
     }
   });
 
@@ -784,6 +838,8 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         lista = [];
         f.tarefas.forEach(function (t) { lista = lista.concat(folhasDaTarefa(t)); });
         lista = lista.filter(passaTipo);
+      } else if (chave.charAt(0) === 't') {
+        lista = folhasDoTipo(id);
       } else {
         var g = acharGrupo(id);
         if (!g) return;
@@ -801,6 +857,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     } else if (b.hasAttribute('data-acao')) {
       var abrir = b.getAttribute('data-acao') === 'abrir';
       if (ui.aba === 'cronograma') fases.forEach(function (fx) { ui.abertos['f:' + fx.id] = abrir; });
+      else if (ui.aba === 'tipos') Object.keys(TIPOS).forEach(function (k) { ui.abertos['t:' + k] = abrir; });
       else grupos.forEach(function (gx) { ui.abertos['g:' + gx.id] = abrir; });
     } else {
       return;
