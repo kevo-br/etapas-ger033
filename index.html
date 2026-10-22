@@ -142,6 +142,15 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 .valefase { margin: 0; font-size: 13.5px; color: var(--muted); }
 .valefase strong { color: var(--ink); font-weight: 600; }
 .recorte { margin: 0; font-size: 13px; color: var(--muted); }
+.painel-filtros { display: grid; gap: 12px; }
+.toggle-filtros { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 8px 12px; }
+.toggle-filtros:hover { background: var(--idle-soft); }
+.tf-nome { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tf-resumo { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); }
+.tf-resumo.ativo { color: var(--accent); font-weight: 600; }
+.toggle-filtros svg { flex: none; color: var(--muted); transition: transform .15s ease; }
+.toggle-filtros[aria-expanded="true"] svg { transform: rotate(90deg); }
+.filtros-corpo { display: grid; gap: 10px; padding: 0 2px; }
 .rodape { margin: 0; font-size: 12.5px; color: var(--muted); }
 
 @media (max-width: 480px) {
@@ -221,7 +230,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
       var s = localStorage.getItem('ger033-etapas-ui-v2');
       if (s) {
         var o = JSON.parse(s);
-        return { abertos: o.abertos || {}, filtro: o.filtro || 'todos', aba: o.aba || 'frentes', fase: o.fase || 'todas', tipo: o.tipo || 'todos' };
+        return { abertos: o.abertos || {}, filtro: o.filtro || 'todos', aba: o.aba || 'frentes', fase: o.fase || 'todas', tipo: o.tipo || 'todos', filtrosAbertos: !!o.filtrosAbertos };
       }
     } catch (e) {}
     return padrao;
@@ -370,7 +379,12 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         '<button type="button" role="tab" data-aba="frentes" data-foco="t-frentes">Frentes de trabalho</button>' +
         '<button type="button" role="tab" data-aba="cronograma" data-foco="t-cronograma">Cronograma</button>' +
         (temTipos ? '<button type="button" role="tab" data-aba="tipos" data-foco="t-tipos">Por tipo</button>' : '') +
-        '</div>' +
+        '</div>';
+    }
+    // Fase e Tipo ficam num painel recolhível; fechado, mostra só o resumo do que está filtrado
+    var linhasFiltro = '';
+    if (temCronograma) {
+      linhasFiltro +=
         '<div class="fases" role="group" aria-label="Fase do cronograma"><span class="rotulo">Fase</span>' +
         '<button type="button" data-fase="todas" data-foco="p-todas">Todas</button>' +
         fases.map(function (f) {
@@ -379,12 +393,20 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         '</div>';
     }
     if (temTipos) {
-      controles +=
+      linhasFiltro +=
         '<div class="fases" role="group" aria-label="Tipo"><span class="rotulo">Tipo</span>' +
         '<button type="button" data-tipo="todos" data-foco="y-todos">Todos</button>' +
         Object.keys(TIPOS).map(function (k) {
           return '<button type="button" data-tipo="' + k + '" data-foco="y-' + k + '">' + TIPOS[k] + '</button>';
         }).join('') +
+        '</div>';
+    }
+    if (linhasFiltro) {
+      controles +=
+        '<div class="painel-filtros">' +
+        '<button type="button" class="toggle-filtros" data-filtros="1" data-foco="filtros" aria-controls="filtros-corpo">' +
+        '<span class="tf-nome">Filtros</span><span class="tf-resumo" id="filtros-resumo"></span>' + CHEVRON + '</button>' +
+        '<div class="filtros-corpo" id="filtros-corpo">' + linhasFiltro + '</div>' +
         '</div>';
     }
     controles +=
@@ -626,6 +648,14 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
     Array.prototype.forEach.call(root.querySelectorAll('[data-aba]'), function (b) {
       b.setAttribute('aria-selected', String(b.getAttribute('data-aba') === ui.aba));
     });
+    var tgl = root.querySelector('[data-filtros]');
+    if (tgl) {
+      tgl.setAttribute('aria-expanded', String(!!ui.filtrosAbertos));
+      document.getElementById('filtros-corpo').hidden = !ui.filtrosAbertos;
+      var rf = document.getElementById('filtros-resumo');
+      rf.textContent = 'Fase: ' + (faseAtual ? tituloCurto(faseAtual) : 'Todas') + (temTipos ? ' · Tipo: ' + (ui.tipo !== 'todos' ? TIPOS[ui.tipo] : 'Todos') : '');
+      rf.className = 'tf-resumo' + (recortado ? ' ativo' : '');
+    }
 
     var h;
     if (ui.aba === 'cronograma') {
@@ -846,6 +876,8 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
         lista = g.folhas.filter(noEscopo);
       }
       ui.abertos[chave] = !aberto(chave, lista);
+    } else if (b.hasAttribute('data-filtros')) {
+      ui.filtrosAbertos = !ui.filtrosAbertos;
     } else if (b.hasAttribute('data-filtro')) {
       ui.filtro = b.getAttribute('data-filtro');
     } else if (b.hasAttribute('data-fase')) {
